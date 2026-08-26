@@ -14,6 +14,8 @@ Tecnologías Utilizadas
 - **Librerías:** 
   - `threading` y `queue` (Módulos nativos para concurrencia y control de cola)
   - `rich` (Librería externa para la interfaz CLI)
+<img width="459" height="245" alt="image" src="https://github.com/user-attachments/assets/7a1264d9-f557-455d-baef-3504abc0add7" />
+<img width="1365" height="522" alt="image" src="https://github.com/user-attachments/assets/15a2932d-e4c6-46eb-ab59-183d28170907" />
 
 Requisitos e Instalación
 
