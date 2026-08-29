@@ -95,8 +95,7 @@ class SimuladorMemoria:
             console.print("\n[dim]Presiona Ctrl+C para regresar al menú principal...[/dim]")
 
 
-def menu():
-    simulador = SimuladorMemoria(ram_total_mb=1024)
+def menu(simulador):
     
     while True:
         console.clear()
@@ -144,4 +143,5 @@ def menu():
             break
 
 if __name__ == "__main__":
-    menu()
+    simulador = SimuladorMemoria(ram_total_mb=1024)
+    menu(simulador)
