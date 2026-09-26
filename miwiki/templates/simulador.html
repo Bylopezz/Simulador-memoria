@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Simulador de Memoria | Mi Wiki</title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fb;
+            color: #202938;
+        }
+
+        header {
+            background: linear-gradient(135deg, #6c63ff, #8f7cff);
+            color: white;
+            padding: 25px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 25px;
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        .titulo {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .titulo h1 {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .titulo p {
+            color: #667085;
+        }
+
+        .ram-card {
+            background: white;
+            padding: 30px;
+            border-radius: 18px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.07);
+            margin-bottom: 30px;
+        }
+
+        .ram-card h2 {
+            margin-bottom: 20px;
+        }
+
+        .ram-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .dato {
+            background: #f5f7fb;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .dato h3 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .dato p {
+            color: #667085;
+        }
+
+        .barra {
+            margin-top: 25px;
+            height: 25px;
+            background: #e5e7eb;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .progreso {
+            height: 100%;
+            width: {{ estado.porcentaje_ram_usada }}%;
+            background: linear-gradient(90deg, #6c63ff, #8f7cff);
+            border-radius: 20px;
+            transition: width 0.5s;
+        }
+
+        .secciones {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .tabla-card {
+            background: white;
+            padding: 25px;
+            border-radius: 18px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.07);
+        }
+
+        .tabla-card h2 {
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            color: #6c63ff;
+        }
+
+        .vacio {
+            color: #667085;
+            padding: 15px 0;
+        }
+
+        .volver {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 22px;
+            background: #6c63ff;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            background: #202938;
+            color: white;
+            margin-top: 60px;
+        }
+
+        @media (max-width: 700px) {
+
+            .ram-info,
+            .secciones {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<header>
+
+    <div class="logo">
+        📚 Mi Wiki
+    </div>
+
+    <nav>
+        <a href="/">Inicio</a>
+        <a href="/simulador">Simulador</a>
+    </nav>
+
+</header>
+
+
+<div class="container">
+
+
+    <div class="titulo">
+
+        <h1>🧠 Simulador de Memoria</h1>
+
+        <p>
+            Monitor de gestión de procesos y memoria RAM
+        </p>
+
+    </div>
+
+
+    <div class="ram-card">
+
+        <h2>💾 Estado de la Memoria RAM</h2>
+
+
+        <div class="ram-info">
+
+            <div class="dato">
+
+                <h3>
+                    {{ estado.ram_total_mb }} MB
+                </h3>
+
+                <p>
+                    RAM Total
+                </p>
+
+            </div>
+
+
+            <div class="dato">
+
+                <h3>
+                    {{ estado.ram_usada_mb }} MB
+                </h3>
+
+                <p>
+                    RAM Usada
+                </p>
+
+            </div>
+
+
+            <div class="dato">
+
+                <h3>
+                    {{ estado.ram_disponible_mb }} MB
+                </h3>
+
+                <p>
+                    RAM Disponible
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="barra">
+
+            <div class="progreso"></div>
+
+        </div>
+
+
+        <p style="margin-top: 10px; color: #667085;">
+
+            Uso de RAM:
+            <strong>
+                {{ estado.porcentaje_ram_usada }}%
+            </strong>
+
+        </p>
+
+    </div>
+
+
+    <div class="secciones">
+
+
+        <div class="tabla-card">
+
+            <h2>🟢 Procesos en Ejecución</h2>
+
+
+            {% if estado.procesos_ejecucion %}
+
+            <table>
+
+                <tr>
+                    <th>PID</th>
+                    <th>Nombre</th>
+                    <th>RAM</th>
+                    <th>Tiempo</th>
+                </tr>
+
+
+                {% for proceso in estado.procesos_ejecucion %}
+
+                <tr>
+
+                    <td>
+                        {{ proceso.pid }}
+                    </td>
+
+                    <td>
+                        {{ proceso.nombre }}
+                    </td>
+
+                    <td>
+                        {{ proceso.memoria_mb }} MB
+                    </td>
+
+                    <td>
+                        {{ proceso.tiempo_restante }} s
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+            {% else %}
+
+            <p class="vacio">
+                No hay procesos en ejecución.
+            </p>
+
+            {% endif %}
+
+        </div>
+
+
+
+        <div class="tabla-card">
+
+            <h2>🟡 Cola de Espera</h2>
+
+
+            {% if estado.cola_espera %}
+
+            <table>
+
+                <tr>
+                    <th>PID</th>
+                    <th>Nombre</th>
+                    <th>RAM</th>
+                    <th>Duración</th>
+                </tr>
+
+
+                {% for proceso in estado.cola_espera %}
+
+                <tr>
+
+                    <td>
+                        {{ proceso.pid }}
+                    </td>
+
+                    <td>
+                        {{ proceso.nombre }}
+                    </td>
+
+                    <td>
+                        {{ proceso.memoria_mb }} MB
+                    </td>
+
+                    <td>
+                        {{ proceso.duracion_seg }} s
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+            {% else %}
+
+            <p class="vacio">
+                No hay procesos en espera.
+            </p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <a href="/" class="volver">
+        ← Volver a la Wiki
+    </a>
+
+
+</div>
+
+
+<footer>
+
+    © 2026 Mi Wiki | Simulador de Memoria
+
+</footer>
+
+
+</body>
+
+</html>
