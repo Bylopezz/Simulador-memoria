@@ -379,5 +379,6 @@ def ejecutar_simulacion_concurrencia():
 
     return obtener_estado_vuelo()
 
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
