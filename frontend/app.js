@@ -349,15 +349,184 @@ function actualizarVistaSimulador() {
 }
 
 // ==========================================
-// SIMULADOR DE CONCURRENCIA (API FLASK)
+// SIMULADOR DE CONCURRENCIA (CABINA DE VUELO)
 // ==========================================
+
+// Cargar el estado del avión al iniciar o cambiar a la sección
+document.addEventListener("DOMContentLoaded", () => {
+    cargarEstadoVuelo();
+});
+
+async function cargarEstadoVuelo() {
+    try {
+        const res = await fetch(`${API_URL}/simulador-concurrencia/estado`);
+        if (res.ok) {
+            const data = await res.json();
+            actualizarVistaCabina(data);
+        }
+    } catch (err) {
+        console.error("Error al obtener estado del vuelo:", err);
+    }
+}
+
+function actualizarVistaCabina(data) {
+    // 1. Actualizar Métricas Estadísticas
+    const elIntegridad = document.getElementById('stat-integridad');
+    const elOverbooking = document.getElementById('stat-overbooking');
+
+    if (data.asientos_con_overbooking > 0) {
+        elIntegridad.textContent = "❌ OVERBOOKING DETECTADO";
+        elIntegridad.style.color = "#ef4444";
+    } else if (data.conteo_exito > 0) {
+        elIntegridad.textContent = "✅ INTEGRIDAD GARANTIZADA";
+        elIntegridad.style.color = "#10b981";
+    } else {
+        elIntegridad.textContent = "Esperando acción";
+        elIntegridad.style.color = "#64748b";
+    }
+
+    elOverbooking.textContent = `${data.asientos_con_overbooking} de 12 asientos`;
+
+    // 2. Agrupar Asientos por Filas (Fila 1, 2, 3)
+    const gridCabina = document.getElementById('grid-cabina');
+    const selectManual = document.getElementById('select-asiento-manual');
+
+    gridCabina.innerHTML = "";
+    if (selectManual) selectManual.innerHTML = "";
+
+    const filas = { "1": [], "2": [], "3": [] };
+
+    data.asientos.forEach(asiento => {
+        const numFila = asiento.id[0];
+        if (filas[numFila]) filas[numFila].push(asiento);
+
+        // Llenar combo de selección manual
+        if (selectManual && !asiento.pasajero_confirmado) {
+            const opt = document.createElement('option');
+            opt.value = asiento.id;
+            opt.textContent = `Asiento ${asiento.id} (Disponible)`;
+            selectManual.appendChild(opt);
+        }
+    });
+
+    if (selectManual && selectManual.options.length === 0) {
+        selectManual.innerHTML = "<option value=''>Vuelo Lleno</option>";
+    }
+
+    // 3. Renderizar Filas de la Cabina
+    Object.keys(filas).forEach(f => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'cabin-row';
+
+        const asientosFila = filas[f];
+        // Asientos Izquierda (A, B)
+        const leftSeats = asientosFila.filter(a => a.id.includes('A') || a.id.includes('B'));
+        // Asientos Derecha (C, D)
+        const rightSeats = asientosFila.filter(a => a.id.includes('C') || a.id.includes('D'));
+
+        let html = "";
+
+        // Render A, B
+        leftSeats.forEach(a => html += crearBotonAsientoHTML(a));
+        // Pasillo Central
+        html += `<div class="aisle">Fila ${f}</div>`;
+        // Render C, D
+        rightSeats.forEach(a => html += crearBotonAsientoHTML(a));
+
+        rowDiv.innerHTML = html;
+        gridCabina.appendChild(rowDiv);
+    });
+
+    // 4. Actualizar Logs de Ejecución
+    const terminalLogs = document.getElementById('terminal-logs');
+    if (terminalLogs) {
+        terminalLogs.textContent = `[PID OS: ${data.pid}]\n` + (data.logs.length > 0 ? data.logs.join('\n') : "Esperando acciones...");
+        terminalLogs.scrollTop = terminalLogs.scrollHeight;
+    }
+}
+
+function crearBotonAsientoHTML(asiento) {
+    let clase = "seat-btn";
+    let icon = "💺";
+    let subtext = "Libre";
+
+    if (asiento.overbooking) {
+        clase += " seat-overbooking";
+        icon = "⚠️";
+        subtext = `OVERBOOK (${asiento.total_asignaciones})`;
+    } else if (asiento.pasajero_confirmado) {
+        clase += " seat-occupied";
+        icon = "👤";
+        subtext = asiento.pasajero_confirmado;
+    }
+
+    return `
+        <button class="${clase}" onclick="seleccionarAsientoDirecto('${asiento.id}')" title="Asiento ${asiento.id} - ${subtext}">
+            <span class="seat-id">${asiento.id} ${icon}</span>
+            <span class="seat-passenger">${subtext}</span>
+        </button>
+    `;
+}
+
+// Selección rápida al hacer clic sobre el gráfico del asiento
+function seleccionarAsientoDirecto(idAsiento) {
+    const select = document.getElementById('select-asiento-manual');
+    if (select) {
+        select.value = idAsiento;
+        document.getElementById('input-pasajero-nombre').focus();
+    }
+}
+
+// Reservar de forma manual mediante el botón
+async function reservarAsientoManual() {
+    const select = document.getElementById('select-asiento-manual');
+    const inputNombre = document.getElementById('input-pasajero-nombre');
+
+    const idAsiento = select.value;
+    const pasajero = inputNombre.value.trim() || "Pasajero Web";
+
+    if (!idAsiento) {
+        alert("Selecciona un asiento disponible.");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/simulador-concurrencia/reservar-manual`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_asiento: idAsiento, pasajero: pasajero })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            actualizarVistaCabina(data);
+        } else {
+            alert(data.error || "No se pudo reservar el asiento.");
+        }
+    } catch (err) {
+        console.error("Error al reservar manual:", err);
+    }
+}
+
+// Reiniciar vuelo a estado cero
+async function reiniciarVuelo() {
+    try {
+        const res = await fetch(`${API_URL}/simulador-concurrencia/reiniciar`, { method: 'POST' });
+        if (res.ok) {
+            const data = await res.json();
+            actualizarVistaCabina(data);
+        }
+    } catch (err) {
+        console.error("Error al reiniciar vuelo:", err);
+    }
+}
+
+// Ejecutar prueba masiva de concurrencia
 async function ejecutarSimulacionConcurrencia() {
     const modoProtegido = document.getElementById('chk-modo-protegido').checked;
-    const gridAsientos = document.getElementById('grid-asientos');
     const terminalLogs = document.getElementById('terminal-logs');
 
-    gridAsientos.innerHTML = "<p class='placeholder-text'>Ejecutando 20 hilos concurrentes...</p>";
-    terminalLogs.textContent = "Procesando reservas de asientos en el backend...";
+    if (terminalLogs) terminalLogs.textContent = "Procesando 20 hilos en paralelo...";
 
     try {
         const res = await fetch(`${API_URL}/simulador-concurrencia/ejecutar`, {
@@ -366,51 +535,11 @@ async function ejecutarSimulacionConcurrencia() {
             body: JSON.stringify({ modo_protegido: modoProtegido, num_agentes: 20 })
         });
 
-        if (!res.ok) {
-            throw new Error(`Respuesta HTTP con error: ${res.status}`);
+        if (res.ok) {
+            const data = await res.json();
+            actualizarVistaCabina(data);
         }
-
-        const data = await res.json();
-
-        // 1. Actualizar Estados de Integridad
-        const elIntegridad = document.getElementById('stat-integridad');
-        const elOverbooking = document.getElementById('stat-overbooking');
-
-        if (data.integridad_ok) {
-            elIntegridad.textContent = "✅ INTEGRIDAD GARANTIZADA";
-            elIntegridad.style.color = "#10b981";
-        } else {
-            elIntegridad.textContent = "❌ CONDICIÓN DE CARRERA (OVERBOOKING)";
-            elIntegridad.style.color = "#ef4444";
-        }
-
-        elOverbooking.textContent = `${data.asientos_con_overbooking} de 5 asientos`;
-
-        // 2. Renderizar Tarjetas de Asientos
-        gridAsientos.innerHTML = "";
-        data.asientos.forEach(asiento => {
-            const card = document.createElement('div');
-            card.className = `seat-card ${asiento.overbooking ? 'seat-danger' : (asiento.total_asignaciones > 0 ? 'seat-success' : '')}`;
-
-            card.innerHTML = `
-                <div class="seat-header">
-                    <span>Asiento ${asiento.id}</span>
-                    <span class="seat-badge">${asiento.overbooking ? '⚠️ OVERBOOKING' : 'OK'}</span>
-                </div>
-                <div>
-                    <p style="font-size:0.85rem;"><strong>Confirmado:</strong> ${asiento.pasajero_confirmado || 'N/A'}</p>
-                    <p style="font-size:0.8rem; color:#6c757d;">Intentos: ${asiento.total_asignaciones}</p>
-                </div>
-            `;
-            gridAsientos.appendChild(card);
-        });
-
-        // 3. Imprimir Logs del Kernel en la Consola Negra
-        terminalLogs.textContent = `[PID OS: ${data.pid}]\n` + data.logs.join('\n');
-
     } catch (err) {
-        console.error("Error al ejecutar simulación:", err);
-        gridAsientos.innerHTML = "<p style='color:red;'>Error al conectar con el servidor backend.</p>";
-        terminalLogs.textContent = "Error: Asegúrate de que el servidor Flask esté corriendo (python backend/app.py).";
+        console.error("Error en prueba de concurrencia:", err);
     }
 }

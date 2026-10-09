@@ -170,47 +170,74 @@
             </div>
         </section>
 
-        <!-- 5. SECCIÓN: SIMULADOR CONCURRENCIA -->
+       <!-- 5. SECCIÓN: SIMULADOR CONCURRENCIA -->
         <section id="simulador-concurrencia" class="modulo">
             <div class="card-container">
-                <h2>Simulador de Concurrencia (Reserva de Asientos de Vuelo)</h2>
-                <p class="subtitle">Demostración de Condición de Carrera (Overbooking) vs Mutex Lock (Sección Crítica)</p>
+                <h2>Simulador de Concurrencia (Reserva de Vuelo)</h2>
+                <p class="subtitle">Interactúa con la cabina o ejecuta pruebas de estrés de hilos concurrentes (Overbooking vs Mutex Lock)</p>
 
                 <!-- Tarjetas Estadísticas -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <span class="stat-label">Estado de Integridad</span>
-                        <h3 id="stat-integridad">Sin Ejecutar</h3>
+                        <h3 id="stat-integridad">Esperando acción</h3>
                     </div>
                     <div class="stat-card">
                         <span class="stat-label">Asientos con Overbooking</span>
-                        <h3 id="stat-overbooking">0 / 5</h3>
+                        <h3 id="stat-overbooking">0 / 12</h3>
                     </div>
                 </div>
 
-                <!-- Panel de Control y Botón -->
+                <!-- Panel de Control y Botones -->
                 <div class="control-panel">
                     <div class="mode-toggle">
                         <label>
                             <input type="checkbox" id="chk-modo-protegido">
-                            <span>Activar Sincronización (Mutex Lock)</span>
+                            <span>Activar Mutex Lock (Sección Crítica)</span>
                         </label>
                     </div>
-                    <button class="btn btn-primary" onclick="ejecutarSimulacionConcurrencia()">🚀 Lanzar 20 Hilos Simultáneos</button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="ejecutarSimulacionConcurrencia()">🚀 Estrés 20 Hilos</button>
+                        <button class="btn btn-danger" onclick="reiniciarVuelo()">🔄 Reiniciar Avión</button>
+                    </div>
                 </div>
 
-                <!-- Cuadrícula de Asientos -->
-                <h3 class="section-title">Estado de Asientos (Vuelo 2026)</h3>
-                <div id="grid-asientos" class="seats-grid">
-                    <p class="placeholder-text">Haz clic en "Lanzar 20 Hilos Simultáneos" para iniciar la prueba.</p>
+                <!-- CABINA DEL AVIÓN INTERACTIVA -->
+                <div class="airplane-container">
+                    <div class="airplane-cockpit">
+                        ✈️ FRENTE DE LA CABINA / COCKPIT
+                    </div>
+
+                    <!-- Leyenda de colores -->
+                    <div class="cabin-legend">
+                        <span><i class="dot dot-available"></i> Disponible</span>
+                        <span><i class="dot dot-confirmed"></i> Reservado</span>
+                        <span><i class="dot dot-conflict"></i> Overbooking</span>
+                    </div>
+
+                    <!-- Mapa de Asientos -->
+                    <div id="grid-cabina" class="cabin-grid">
+                        <p class="placeholder-text">Cargando cabina...</p>
+                    </div>
+                </div>
+
+                <!-- Formulario de Reserva Manual de Usuario -->
+                <div class="manual-booking-box">
+                    <h3>💺 Selección Manual de Asiento</h3>
+                    <div class="form-inline" style="margin-top: 10px;">
+                        <select id="select-asiento-manual" class="form-control">
+                            <option value="">Cargando asientos disponibles...</option>
+                        </select>
+                        <input type="text" id="input-pasajero-nombre" placeholder="Nombre del Pasajero (Ej. Carlos)" value="Pasajero Web">
+                        <button class="btn btn-primary" onclick="reservarAsientoManual()">Confirmar Reserva</button>
+                    </div>
                 </div>
 
                 <!-- Consola de Registro de Hilos -->
-                <h3 class="section-title">Registro de Hilos (Kernel Execution Log)</h3>
-                <pre id="terminal-logs" class="terminal-box">Esperando ejecución de la simulación...</pre>
+                <h3 class="section-title">Registro de Ejecución (Kernel execution log)</h3>
+                <pre id="terminal-logs" class="terminal-box">Sistema de vuelo iniciado. Selecciona un asiento o lanza la prueba de hilos.</pre>
             </div>
         </section>
-
     </main>
 
     <!-- ARCHIVO JS CONECTADO EXTERNAMENTE -->
