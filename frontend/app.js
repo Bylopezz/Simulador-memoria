@@ -165,23 +165,61 @@ function filtrarPublicaciones() {
 }
 
 // ==========================================
-// SIMULADOR DE MEMORIA RAM
+// SIMULADOR DE MEMORIA RAM (CON PLANIFICADOR TEMPORIZADO)
 // ==========================================
+let intervalSimuladorRAM = null;
+
+function iniciarRelojRAM() {
+    if (!intervalSimuladorRAM) {
+        intervalSimuladorRAM = setInterval(tickSimuladorRAM, 1000);
+    }
+}
+
+function tickSimuladorRAM() {
+    if (simuladorRAM.procesosEjecucion.length === 0) return;
+
+    let seLiberaronProcesos = false;
+
+    // Descontar 1 segundo a cada proceso en ejecución
+    for (let i = simuladorRAM.procesosEjecucion.length - 1; i >= 0; i--) {
+        let proc = simuladorRAM.procesosEjecucion[i];
+        proc.tiempoRestante -= 1;
+
+        // Si completó su tiempo de ejecución, liberarlo
+        if (proc.tiempoRestante <= 0) {
+            simuladorRAM.usada -= proc.tamano;
+            simuladorRAM.procesosEjecucion.splice(i, 1);
+            seLiberaronProcesos = true;
+        }
+    }
+
+    // Si se liberó espacio, promover procesos en cola de espera
+    if (seLiberaronProcesos) {
+        revisarColaEspera();
+    }
+
+    actualizarVistaSimulador();
+}
+
 function agregarProcesoSimulador(event) {
     event.preventDefault();
 
     const nombreInput = document.getElementById("proc-nombre");
     const tamanoInput = document.getElementById("proc-tamano");
+    const tiempoInput = document.getElementById("proc-tiempo");
 
     const nombre = nombreInput.value.trim();
     const tamano = parseInt(tamanoInput.value);
+    const tiempo = parseInt(tiempoInput.value) || 5;
 
     if (!nombre || isNaN(tamano) || tamano <= 0) return;
 
     const nuevoProceso = {
         id: simuladorRAM.siguienteId++,
         nombre: nombre,
-        tamano: tamano
+        tamano: tamano,
+        tiempoTotal: tiempo,
+        tiempoRestante: tiempo
     };
 
     const ramDisponible = TOTAL_RAM_MB - simuladorRAM.usada;
@@ -194,6 +232,9 @@ function agregarProcesoSimulador(event) {
 
     nombreInput.value = "";
     tamanoInput.value = "128";
+    if (tiempoInput) tiempoInput.value = "5";
+
+    iniciarRelojRAM();
     actualizarVistaSimulador();
 }
 
@@ -259,23 +300,36 @@ function actualizarVistaSimulador() {
         }
     }
 
+    // Renderizar procesos en ejecución con temporizador
     const listEjec = document.getElementById("lista-ejecucion");
     if (listEjec) {
         if (simuladorRAM.procesosEjecucion.length === 0) {
             listEjec.innerHTML = `<li style="color: var(--text-muted); padding: 0.5rem 0;">No hay procesos corriendo en la RAM.</li>`;
         } else {
-            listEjec.innerHTML = simuladorRAM.procesosEjecucion.map(p => `
-                <li class="process-item">
-                    <div>
-                        <strong>${p.nombre}</strong> <small style="color:var(--text-muted);">(ID: ${p.id})</small>
-                        <br><small style="color:var(--blue-primary); font-weight:600;">${p.tamano} MB</small>
-                    </div>
-                    <button class="btn btn-danger" style="padding:0.3rem 0.6rem; font-size:0.8rem;" onclick="terminarProceso(${p.id})">Terminar</button>
-                </li>
-            `).join("");
+            listEjec.innerHTML = simuladorRAM.procesosEjecucion.map(p => {
+                const pctTiempo = Math.max(0, Math.min(100, (p.tiempoRestante / p.tiempoTotal) * 100));
+                return `
+                    <li class="process-item" style="flex-direction: column; align-items: stretch; gap: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${p.nombre}</strong> <small style="color:var(--text-muted);">(ID: ${p.id})</small>
+                                <br><small style="color:var(--blue-primary); font-weight:600;">${p.tamano} MB</small>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:0.8rem;">⏱️ ${p.tiempoRestante}s</span>
+                                <button class="btn btn-danger" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="terminarProceso(${p.id})">Terminar</button>
+                            </div>
+                        </div>
+                        <div style="background:#e2e8f0; height: 4px; border-radius:2px; overflow:hidden;">
+                            <div style="background:var(--blue-primary); height:100%; width:${pctTiempo}%; transition: width 0.3s linear;"></div>
+                        </div>
+                    </li>
+                `;
+            }).join("");
         }
     }
 
+    // Renderizar cola de espera
     const listEsp = document.getElementById("lista-espera");
     if (listEsp) {
         if (simuladorRAM.colaEspera.length === 0) {
@@ -285,9 +339,9 @@ function actualizarVistaSimulador() {
                 <li class="process-item" style="border-left: 3px solid var(--warning-color);">
                     <div>
                         <strong>${p.nombre}</strong> <small style="color:var(--text-muted);">(ID: ${p.id})</small>
-                        <br><small style="color:var(--warning-color); font-weight:600;">${p.tamano} MB [Esperando RAM]</small>
+                        <br><small style="color:var(--warning-color); font-weight:600;">${p.tamano} MB [Esperando RAM] (${p.tiempoTotal}s)</small>
                     </div>
-                    <button class="btn btn-secondary" style="padding:0.3rem 0.6rem; font-size:0.8rem;" onclick="terminarProceso(${p.id})">Cancelar</button>
+                    <button class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="terminarProceso(${p.id})">Cancelar</button>
                 </li>
             `).join("");
         }

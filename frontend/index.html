@@ -147,8 +147,9 @@
                 <div class="sim-controls">
                     <h3>Crear Nuevo Proceso</h3>
                     <form id="form-proceso" onsubmit="agregarProcesoSimulador(event)" class="form-inline">
-                        <input type="text" id="proc-nombre" placeholder="Nombre (Ej. Navegador)" required>
-                        <input type="number" id="proc-tamano" min="16" max="1024" value="128" placeholder="MB" required style="width: 100px;">
+                        <input type="text" id="proc-nombre" placeholder="Nombre (Ej. Navegador)" required style="flex: 2;">
+                        <input type="number" id="proc-tamano" min="16" max="1024" value="128" placeholder="MB" required style="width: 90px;" title="Tamaño en MB">
+                        <input type="number" id="proc-tiempo" min="1" max="60" value="5" placeholder="Segundos" required style="width: 90px;" title="Tiempo de ejecución en segundos">
                         <button type="submit" class="btn btn-primary">Agregar</button>
                         <button type="button" class="btn btn-danger" onclick="reiniciarSimulador()">Reiniciar</button>
                     </form>
