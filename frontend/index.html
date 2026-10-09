@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistemas Operativos - Wiki & Simulador</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Variables y paleta de colores */ 
+        
+        :root {
+            --bg-main: #f8fafc;
+            --card-bg: #ffffff;
+            --navy-dark: #0f172a;
+            --navy-card: #1e293b;
+            --blue-primary: #2563eb;
+            --blue-hover: #1d4ed8;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --text-light: #f8fafc;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --radius: 8px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg-main); color: var(--text-dark); line-height: 1.6; }
+
+        /* NAVBAR */
+        .navbar { background-color: var(--navy-dark); color: var(--text-light); padding: 1rem 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .brand { display: flex; align-items: center; gap: 0.75rem; }
+        .brand h2 { font-size: 1.3rem; color: var(--text-light); font-weight: 700; }
+        nav { display: flex; gap: 0.5rem; }
+        .nav-btn { background: transparent; border: none; color: #94a3b8; padding: 0.6rem 1.1rem; font-weight: 500; border-radius: var(--radius); cursor: pointer; transition: all 0.2s; }
+        .nav-btn.active, .nav-btn:hover { color: #fff; background-color: var(--blue-primary); }
+
+        /* LAYOUT & CARDS */
+        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+        .modulo { display: none; }
+        .modulo.active { display: block; }
+
+        .card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1.75rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); }
+        .hero-card { background-color: var(--navy-card); color: var(--text-light); padding: 2.5rem 2rem; border-radius: var(--radius); margin-bottom: 1.5rem; }
+        .hero-card h1 { font-size: 1.8rem; margin-bottom: 0.75rem; color: #fff; }
+        .hero-card p { color: #cbd5e1; margin-bottom: 1.5rem; font-size: 1.05rem; }
+        .hero-actions { display: flex; gap: 1rem; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; margin-top: 1.25rem; }
+
+        /* BUTTONS */
+        .btn { padding: 0.65rem 1.25rem; border-radius: var(--radius); font-weight: 600; cursor: pointer; border: none; transition: background 0.2s; display: inline-block; }
+        .btn-primary { background-color: var(--blue-primary); color: white; }
+        .btn-primary:hover { background-color: var(--blue-hover); }
+        .btn-secondary { background-color: #334155; color: white; }
+        .btn-secondary:hover { background-color: #475569; }
+        .btn-outline { background: transparent; border: 1px solid var(--blue-primary); color: var(--blue-primary); }
+        .btn-outline:hover { background-color: var(--blue-primary); color: white; }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-block { width: 100%; text-align: center; margin-top: 1rem; }
+
+        /* FORMS */
+        .form-container { max-width: 700px; margin: 0 auto; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.65rem 0.85rem; border: 1px solid var(--border-color); border-radius: var(--radius); font-family: inherit; font-size: 0.95rem; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+        /* SIMULADOR */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+        .stat-box { background: #f1f5f9; padding: 1rem; border-radius: var(--radius); border-left: 4px solid var(--blue-primary); }
+        .stat-box small { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
+        .stat-box p { font-size: 1.4rem; font-weight: 700; color: var(--navy-dark); }
+
+        .ram-progress-container { background-color: #e2e8f0; height: 22px; border-radius: 11px; overflow: hidden; margin: 1.25rem 0; }
+        .ram-progress-bar { background-color: var(--blue-primary); height: 100%; width: 0%; transition: width 0.4s ease; }
+
+        .form-inline { display: flex; gap: 0.75rem; align-items: center; margin-top: 1rem; }
+        .form-inline input { padding: 0.6rem; border: 1px solid var(--border-color); border-radius: var(--radius); }
+
+        .process-list { list-style: none; margin-top: 0.75rem; }
+        .process-item { background: #f8fafc; border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: var(--radius); margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .badge { background: #e0e7ff; color: #3730a3; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+        
+        .filter-bar { display: flex; gap: 1rem; margin-top: 1rem; }
+        .filter-bar input { flex: 2; }
+        .filter-bar select { flex: 1; }
+        .divider { margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border-color); }
+    </style>
+</head>
+<body>
+
+    <!-- NAV -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <span class="logo-icon">💻</span>
+                <h2>Wiki OS</h2>
+            </div>
+            <nav>
+                <button class="nav-btn active" onclick="mostrarSeccion('inicio')">Inicio</button>
+                <button class="nav-btn" onclick="mostrarSeccion('glosario')">Glosario & Artículos</button>
+                <button class="nav-btn" onclick="mostrarSeccion('publicar')">Publicar</button>
+                <button class="nav-btn" onclick="mostrarSeccion('simulador')">Simulador RAM</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="container">
+
+        <!-- 1. SECCIÓN: INICIO -->
+        <section id="inicio" class="modulo active">
+            <div class="hero-card">
+                <h1>Plataforma Académica de Sistemas Operativos</h1>
+                <p>Explora conceptos, publica aportes y simula la asignación de memoria RAM en tiempo real.</p>
+                <div class="hero-actions">
+                    <button class="btn btn-primary" onclick="mostrarSeccion('simulador')">Probar Simulador RAM</button>
+                    <button class="btn btn-secondary" onclick="mostrarSeccion('glosario')">Ver Glosario</button>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3>💡 Últimas Publicaciones</h3>
+                    <div id="lista-recientes" style="margin-top: 1rem;">
+                        <p style="color: var(--text-muted);">Cargando publicaciones...</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>🧠 Estado Rápido del Simulador</h3>
+                    <p style="margin: 0.75rem 0; color: var(--text-muted);">Monitorea y asigna bloques de memoria simulando los algoritmos de gestión de RAM.</p>
+                    <button class="btn btn-outline" onclick="mostrarSeccion('simulador')">Ir al Simulador</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. SECCIÓN: GLOSARIO -->
+        <section id="glosario" class="modulo">
+            <div class="card">
+                <div class="section-header">
+                    <h2>Glosario & Artículos Académicos</h2>
+                    <p style="color: var(--text-muted);">Consulta las publicaciones agregadas por la comunidad.</p>
+                </div>
+
+                <div class="filter-bar">
+                    <input type="text" id="input-buscar" placeholder="Buscar por título o contenido..." oninput="filtrarPublicaciones()">
+                    <select id="select-categoria" onchange="filtrarPublicaciones()">
+                        <option value="todas">Todas las Categorías</option>
+                        <option value="Sistemas Operativos">Sistemas Operativos</option>
+                        <option value="Estructuras de Datos">Estructuras de Datos</option>
+                        <option value="Algoritmos">Algoritmos</option>
+                        <option value="Bases de Datos">Bases de Datos</option>
+                    </select>
+                </div>
+
+                <div id="contenedor-articulos" class="grid-cards"></div>
+            </div>
+        </section>
+
+        <!-- 3. SECCIÓN: PUBLICAR -->
+        <section id="publicar" class="modulo">
+            <div class="card form-container">
+                <h2>Publicar Definición o Artículo</h2>
+                <form id="form-publicacion" onsubmit="guardarPublicacion(event)">
+                    <div class="form-group">
+                        <label for="titulo">Título de la publicación</label>
+                        <input type="text" id="titulo" required placeholder="Ej. Paginación de Memoria">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tipo">Tipo de Contenido</label>
+                            <select id="tipo" required>
+                                <option value="Definición">Definición</option>
+                                <option value="Artículo">Artículo Académico</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="categoria">Categoría</label>
+                            <select id="categoria" required>
+                                <option value="Sistemas Operativos">Sistemas Operativos</option>
+                                <option value="Estructuras de Datos">Estructuras de Datos</option>
+                                <option value="Algoritmos">Algoritmos</option>
+                                <option value="Bases de Datos">Bases de Datos</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="autor">Autor / Usuario</label>
+                        <input type="text" id="autor" required placeholder="Ej. Estudiante UMG">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contenido">Contenido</label>
+                        <textarea id="contenido" rows="5" required placeholder="Escribe el desarrollo del tema aquí..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Guardar y Publicar</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- 4. SECCIÓN: SIMULADOR RAM -->
+        <section id="simulador" class="modulo">
+            <div class="card">
+                <h2>Simulador de Memoria RAM (Total: 1024 MB)</h2>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <small>RAM Usada</small>
+                        <p id="ram-usada">0 MB (0%)</p>
+                    </div>
+                    <div class="stat-box">
+                        <small>RAM Disponible</small>
+                        <p id="ram-disponible">1024 MB</p>
+                    </div>
+                </div>
+
+                <div class="ram-progress-container">
+                    <div id="ram-bar" class="ram-progress-bar" style="width: 0%;"></div>
+                </div>
+
+                <div class="sim-controls">
+                    <h3>Crear Nuevo Proceso</h3>
+                    <form id="form-proceso" onsubmit="agregarProcesoSimulador(event)" class="form-inline">
+                        <input type="text" id="proc-nombre" placeholder="Nombre (Ej. Navegador)" required>
+                        <input type="number" id="proc-tamano" min="16" max="1024" value="128" placeholder="MB" required style="width: 100px;">
+                        <button type="submit" class="btn btn-primary">Agregar</button>
+                        <button type="button" class="btn btn-danger" onclick="reiniciarSimulador()">Reiniciar</button>
+                    </form>
+                </div>
+
+                <hr class="divider">
+
+                <div class="grid-2">
+                    <div>
+                        <h3>Procesos en Ejecución (RAM)</h3>
+                        <ul id="lista-ejecucion" class="process-list"></ul>
+                    </div>
+                    <div>
+                        <h3>Cola de Espera</h3>
+                        <ul id="lista-espera" class="process-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- LOGICA JS EN LÍNEA PARA CARGA DIRECTA -->
+    <script>
+        const API_URL = '/api';
+        let publicacionesLocales = [];
+
+        function mostrarSeccion(idSeccion) {
+            document.querySelectorAll('.modulo').forEach(m => m.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+            const seccion = document.getElementById(idSeccion);
+            if (seccion) seccion.classList.add('active');
+
+            const botones = document.querySelectorAll('.nav-btn');
+            if (idSeccion === 'inicio') botones[0].classList.add('active');
+            if (idSeccion === 'glosario') botones[1].classList.add('active');
+            if (idSeccion === 'publicar') botones[2].classList.add('active');
+            if (idSeccion === 'simulador') botones[3].classList.add('active');
+        }
+
+        async function cargarPublicaciones() {
+            try {
+                const res = await fetch(`${API_URL}/publicaciones`);
+                if (res.ok) {
+                    publicacionesLocales = await res.json();
+                    renderizarPublicaciones(publicacionesLocales);
+                    renderizarRecientes(publicacionesLocales);
+                }
+            } catch (err) {
+                console.log('Error al conectar con la API, usando datos iniciales.');
+            }
+        }
+
+        function renderizarPublicaciones(lista) {
+            const cont = document.getElementById('contenedor-articulos');
+            if (!cont) return;
+            cont.innerHTML = lista.length === 0 ? '<p>No hay publicaciones.</p>' : '';
+            lista.forEach(p => {
+                cont.innerHTML += `
+                    <div class="card" style="margin-bottom:0;">
+                        <span class="badge">${p.tipo}</span> <span class="badge" style="background:#f1f5f9; color:#475569;">${p.categoria}</span>
+                        <h3 style="margin: 0.5rem 0;">${p.titulo}</h3>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem;">${p.contenido}</p>
+                        <small style="color: #94a3b8;">Por: ${p.autor} - ${p.fecha}</small>
+                    </div>
+                `;
+            });
+        }
+
+        function renderizarRecientes(lista) {
+            const cont = document.getElementById('lista-recientes');
+            if (!cont) return;
+            cont.innerHTML = '';
+            lista.slice(0, 3).forEach(p => {
+                cont.innerHTML += `
+                    <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">
+                        <strong>${p.titulo}</strong>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">${p.contenido.substring(0, 75)}...</p>
+                    </div>
+                `;
+            });
+        }
+
+        function filtrarPublicaciones() {
+            const texto = document.getElementById('input-buscar').value.toLowerCase();
+            const cat = document.getElementById('select-categoria').value;
+
+            const filtradas = publicacionesLocales.filter(p => {
+                const coincideTexto = p.titulo.toLowerCase().includes(texto) || p.contenido.toLowerCase().includes(texto);
+                const coincideCat = cat === 'todas' || p.categoria === cat;
+                return coincideTexto && coincideCat;
+            });
+            renderizarPublicaciones(filtradas);
+        }
+
+        async function guardarPublicacion(e) {
+            e.preventDefault();
+            const nueva = {
+                titulo: document.getElementById('titulo').value,
+                tipo: document.getElementById('tipo').value,
+                categoria: document.getElementById('categoria').value,
+                autor: document.getElementById('autor').value,
+                contenido: document.getElementById('contenido').value
+            };
+
+            await fetch(`${API_URL}/publicaciones`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(nueva)
+            });
+
+            document.getElementById('form-publicacion').reset();
+            cargarPublicaciones();
+            mostrarSeccion('glosario');
+        }
+
+        async function actualizarSimulador() {
+            try {
+                const res = await fetch(`${API_URL}/simulador/estado`);
+                if (!res.ok) return;
+                const data = await res.json();
+
+                document.getElementById('ram-usada').innerText = `${data.ram_usada_mb} MB (${data.porcentaje_ram_usada}%)`;
+                document.getElementById('ram-disponible').innerText = `${data.ram_disponible_mb} MB`;
+                document.getElementById('ram-bar').style.width = `${data.porcentaje_ram_usada}%`;
+
+                const listaEjec = document.getElementById('lista-ejecucion');
+                listaEjec.innerHTML = data.procesos_ejecucion.length === 0 ? '<p style="color:var(--text-muted);">Sin procesos activos.</p>' : '';
+                data.procesos_ejecucion.forEach(p => {
+                    listaEjec.innerHTML += `
+                        <li class="process-item">
+                            <span><strong>${p.nombre}</strong> (${p.tamano_mb} MB)</span>
+                            <button class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="eliminarProceso(${p.id})">Terminar</button>
+                        </li>
+                    `;
+                });
+
+                const listaEsp = document.getElementById('lista-espera');
+                listaEsp.innerHTML = data.cola_espera.length === 0 ? '<p style="color:var(--text-muted);">Cola vacía.</p>' : '';
+                data.cola_espera.forEach(p => {
+                    listaEsp.innerHTML += `
+                        <li class="process-item" style="border-left: 4px solid var(--warning-color);">
+                            <span><strong>${p.nombre}</strong> (${p.tamano_mb} MB)</span>
+                            <span class="badge" style="background:#fef3c7; color:#92400e;">En Espera</span>
+                        </li>
+                    `;
+                });
+            } catch(e) {}
+        }
+
+        async function agregarProcesoSimulador(e) {
+            e.preventDefault();
+            const proc = {
+                nombre: document.getElementById('proc-nombre').value,
+                tamano: parseInt(document.getElementById('proc-tamano').value)
+            };
+
+            await fetch(`${API_URL}/simulador/crear`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(proc)
+            });
+
+            document.getElementById('proc-nombre').value = '';
+            actualizarSimulador();
+        }
+
+        async function eliminarProceso(id) {
+            await fetch(`${API_URL}/simulador/eliminar/${id}`, { method: 'POST' });
+            actualizarSimulador();
+        }
+
+        async function reiniciarSimulador() {
+            await fetch(`${API_URL}/simulador/reiniciar`, { method: 'POST' });
+            actualizarSimulador();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarPublicaciones();
+            actualizarSimulador();
+        });
+    </script>
+</body>
+</html>

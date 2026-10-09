@@ -1,0 +1,13 @@
+# Entornos virtuales de Python (Evita subir miles de archivos pesados)
+venv/
+.venv/
+backend/venv/
+
+# Cache de Python
+__pycache__/
+*.pyc
+
+# Archivos de configuración local del editor y sistema
+.vscode/
+.DS_Store
+Thumbs.db
