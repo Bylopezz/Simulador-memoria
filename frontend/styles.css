@@ -410,3 +410,166 @@ nav {
         gap: 1rem;
     }
 }
+
+/* Tarjeta Contenedora Principal */
+.card-container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    margin-top: 20px;
+}
+
+.card-container h2 {
+    font-size: 1.5rem;
+    color: #1a233a;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    color: #1a233a;
+    margin: 25px 0 10px 0;
+}
+
+/* Tarjetas Estadísticas Superior */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-left: 4px solid #0d6efd;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.stat-card h3 {
+    margin-top: 5px;
+    font-size: 1.1rem;
+    color: #212529;
+}
+
+/* Panel de Control y Botón */
+.control-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.mode-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #495057;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+}
+
+/* Cuadrícula de Asientos */
+.seats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+}
+
+.seat-card {
+    background-color: #ffffff;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.seat-card.seat-success {
+    border-color: #198754;
+    background-color: #f1f9f5;
+}
+
+.seat-card.seat-danger {
+    border-color: #dc3545;
+    background-color: #fff0f1;
+}
+
+.seat-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.seat-badge {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background-color: #e9ecef;
+}
+
+.placeholder-text {
+    color: #6c757d;
+    font-size: 0.9rem;
+    grid-column: 1 / -1;
+}
+
+/* Terminal de Logs Negra */
+.terminal-box {
+    background-color: #1a1e24;
+    color: #2ef072;
+    padding: 15px;
+    border-radius: 8px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    max-height: 220px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+/* Control de visibilidad de módulos */
+.modulo {
+    display: none;
+}
+
+.modulo.active {
+    display: block;
+}

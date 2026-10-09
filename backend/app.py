@@ -213,5 +213,128 @@ def reiniciar_simulador():
     }
     return jsonify(estado_simulador), 200
 
+import threading
+import time
+import random
+import os
+import ctypes
+
+# Auxiliar para obtener Kernel TID
+def get_kernel_tid():
+    try:
+        libc = ctypes.CDLL('libc.so.6')
+        return libc.gettid()
+    except Exception:
+        return threading.get_ident()
+
+class Asiento:
+    def __init__(self, id_asiento):
+        self.id_asiento = id_asiento
+        self.reservado_por = None
+        self.historial_reservas = []
+        self.lock = threading.Lock()
+
+class SistemaReservasAerolinea:
+    def __init__(self, lista_asientos):
+        self.asientos = {id_a: Asiento(id_a) for id_a in lista_asientos}
+        self.conteo_exito = 0
+        self.conteo_fallo = 0
+        self.lock_global_stats = threading.Lock()
+        self.logs = []
+        self.lock_logs = threading.Lock()
+
+    def add_log(self, mensaje):
+        with self.lock_logs:
+            self.logs.append(mensaje)
+
+    def reservar_sin_sincronizar(self, id_asiento, pasajero, id_agente):
+        asiento = self.asientos[id_asiento]
+        if asiento.reservado_por is None:
+            time.sleep(0.001)
+            asiento.reservado_por = pasajero
+            asiento.historial_reservas.append(pasajero)
+            with self.lock_global_stats:
+                self.conteo_exito += 1
+            self.add_log(f"⚠️ [Sin Sync] Agente {id_agente:02d} reservó {id_asiento} -> {pasajero}")
+            return True
+        else:
+            with self.lock_global_stats:
+                self.conteo_fallo += 1
+            return False
+
+    def reservar_sincronizado(self, id_asiento, pasajero, id_agente):
+        asiento = self.asientos[id_asiento]
+        with asiento.lock:
+            if asiento.reservado_por is None:
+                time.sleep(0.001)
+                asiento.reservado_por = pasajero
+                asiento.historial_reservas.append(pasajero)
+                with self.lock_global_stats:
+                    self.conteo_exito += 1
+                self.add_log(f"🔒 [Lock Mutex] Agente {id_agente:02d} reservó {id_asiento} -> {pasajero}")
+                return True
+            else:
+                with self.lock_global_stats:
+                    self.conteo_fallo += 1
+                return False
+
+# Ruta API para ejecutar la simulación desde la web
+@app.route('/api/simulador-concurrencia/ejecutar', methods=['POST'])
+def ejecutar_simulacion_concurrencia():
+    data = request.get_json() or {}
+    modo_protegido = data.get('modo_protegido', False)
+    num_agentes = int(data.get('num_agentes', 20))
+    asientos_vuelo = ["1A", "1B", "2A", "2B", "3A"]
+    
+    sistema = SistemaReservasAerolinea(asientos_vuelo)
+    hilos = []
+
+    def tarea_agente(id_agente):
+        tid = get_kernel_tid()
+        sistema.add_log(f"🧵 Hilo Agente-{id_agente:02d} (TID Kernel: {tid}) compitiendo...")
+        for id_asiento in asientos_vuelo:
+            pasajero_nombre = f"Pasajero_{id_agente}_{random.randint(100, 999)}"
+            if modo_protegido:
+                sistema.reservar_sincronizado(id_asiento, pasajero_nombre, id_agente)
+            else:
+                sistema.reservar_sin_sincronizar(id_asiento, pasajero_nombre, id_agente)
+
+    for i in range(1, num_agentes + 1):
+        t = threading.Thread(target=tarea_agente, args=(i,), name=f"HiloAgente-{i}")
+        hilos.append(t)
+        t.start()
+
+    for t in hilos:
+        t.join()
+
+    asientos_res = []
+    asientos_con_overbooking = 0
+
+    for id_a, asiento in sistema.asientos.items():
+        historial = list(asiento.historial_reservas)
+        total_asignaciones = len(historial)
+        es_overbooking = total_asignaciones > 1
+        if es_overbooking:
+            asientos_con_overbooking += 1
+
+        asientos_res.append({
+            "id": id_a,
+            "pasajero_confirmado": asiento.reservado_por,
+            "historial": historial,
+            "total_asignaciones": total_asignaciones,
+            "overbooking": es_overbooking
+        })
+
+    return jsonify({
+        "modo_protegido": modo_protegido,
+        "asientos": asientos_res,
+        "asientos_con_overbooking": asientos_con_overbooking,
+        "conteo_exito": sistema.conteo_exito,
+        "conteo_fallo": sistema.conteo_fallo,
+        "integridad_ok": asientos_con_overbooking == 0,
+        "logs": sistema.logs,
+        "pid": os.getpid()
+    })
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
