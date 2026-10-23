@@ -3,290 +3,393 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistemas Operativos - Wiki & Simuladores</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <title>Wiki & OS Simulator 2026</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* NAVEGACIÓN PRINCIPAL */
+        header {
+            background-color: #1e293b;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        nav button {
+            background: transparent;
+            border: 1px solid #334155;
+            color: #cbd5e1;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        nav button:hover, nav button.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        main {
+            flex: 1;
+            max-width: 1200px;
+            width: 100%;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .modulo {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* TARJETAS Y COMPONENTES */
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: var(--primary-dark); }
+        .btn-secondary { background-color: #64748b; color: white; }
+        .btn-secondary:hover { background-color: #475569; }
+        .btn-outline { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-outline:hover { background-color: #f1f5f9; }
+        .btn-danger { background-color: var(--danger); color: white; }
+
+        /* FORMULARIOS Y TABLAS */
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-top: 6px;
+            margin-bottom: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th { background-color: #f1f5f9; font-weight: 600; }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* LAYOUTS ESPECÍFICOS */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            header { flex-direction: column; gap: 15px; }
+        }
+    </style>
 </head>
 <body>
 
-    <!-- NAV -->
-    <header class="navbar">
-        <div class="nav-container">
-            <div class="brand">
-                <span class="logo-icon">💻</span>
-                <h2>Wiki OS</h2>
-            </div>
-            <nav>
-                <button class="nav-btn active" onclick="mostrarSeccion('inicio')">Inicio</button>
-                <button class="nav-btn" onclick="mostrarSeccion('glosario')">Glosario & Artículos</button>
-                <button class="nav-btn" onclick="mostrarSeccion('publicar')">Publicar</button>
-                <button class="nav-btn" onclick="mostrarSeccion('simulador')">Simulador RAM</button>
-                <button class="nav-btn" onclick="mostrarSeccion('simulador-concurrencia')">Simulador Concurrencia</button>
-            </nav>
-        </div>
+    <!-- ENCABEZADO Y NAVEGACIÓN -->
+    <header>
+        <h1>💻 Wiki & OS Simulator</h1>
+        <nav>
+            <button class="nav-btn active" onclick="mostrarModulo('inicio')">🏠 Inicio</button>
+            <button class="nav-btn" onclick="mostrarModulo('glosario')">📚 Glosario</button>
+            <button class="nav-btn" onclick="mostrarModulo('editor')">✏️ Publicar</button>
+            <button class="nav-btn" onclick="mostrarModulo('ram')">🧠 Simulador RAM</button>
+            <button class="nav-btn" onclick="mostrarModulo('concurrencia')">⚡ Concurrencia</button>
+            <button class="nav-btn" onclick="mostrarModulo('banquero')">🏦 Algoritmo Banquero</button>
+        </nav>
     </header>
 
-    <!-- MAIN CONTAINER -->
-    <main class="container">
+    <main>
 
-        <!-- 1. SECCIÓN: INICIO -->
-        <section id="inicio" class="modulo active">
-            <div class="hero-card">
-                <h1>Plataforma Académica de Sistemas Operativos</h1>
-                <p>Explora conceptos, publica aportes y simula la asignación de memoria RAM y concurrencia en tiempo real.</p>
-                <div class="hero-actions">
-                    <button class="btn btn-primary" onclick="mostrarSeccion('simulador')">Probar Simulador RAM</button>
-                    <button class="btn btn-secondary" onclick="mostrarSeccion('simulador-concurrencia')">Probar Concurrencia</button>
+        <!-- 1. MÓDULO INICIO -->
+        <section id="modulo-inicio" class="modulo">
+            <h2>🏠 Inicio - Resumen General</h2>
+            <p style="color: var(--text-muted); margin-bottom: 20px;">Estado general de las últimas publicaciones e historial de auditoría del sistema.</p>
+
+            <div class="grid-2">
+                <!-- Tarjeta 1: Últimas 3 publicaciones -->
+                <div class="card">
+                    <h3>📌 Últimas 3 Publicaciones</h3>
+                    <div id="contenedor-ultimas-publicaciones" style="margin-top: 10px;">
+                        <p style="color: var(--text-muted);">Cargando publicaciones recientes...</p>
+                    </div>
                 </div>
+
+                <!-- Tarjeta 2: Últimos 3 cambios de auditoría -->
+                <div class="card">
+                    <h3>📜 Últimos 3 Cambios Registrados</h3>
+                    <div id="contenedor-ultimos-cambios" style="margin-top: 10px;">
+                        <p style="color: var(--text-muted);">Cargando actividad reciente...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. MÓDULO GLOSARIO -->
+        <section id="modulo-glosario" class="modulo" style="display: none;">
+            <h2>📚 Glosario de Términos de Sistemas Operativos</h2>
+            <p style="color: var(--text-muted); margin-bottom: 15px;">Explora la documentación cargada en la comunidad.</p>
+
+            <div id="lista-articulos-glosario" class="grid-2" style="margin-bottom: 30px;">
+                <!-- Artículos renderizados dinámicamente -->
+            </div>
+
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid var(--border-color);">
+
+            <h3>🏛️ Historial General de Auditoría del Sistema</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 10px;">Bitácora global respaldada automáticamente mediante Triggers SQL (Turso).</p>
+            
+            <div class="card" style="padding: 0; overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Acción</th>
+                            <th>Objeto / Título</th>
+                            <th>Usuario / Autor</th>
+                            <th>Fecha y Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-historial-general">
+                        <tr><td colspan="4">Cargando bitácora general...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 3. MÓDULO DETALLE DE ARTÍCULO -->
+        <section id="modulo-articulo-detalle" class="modulo" style="display: none;">
+            <button onclick="mostrarModulo('glosario')" class="btn btn-secondary" style="margin-bottom: 15px;">⬅ Volver al Glosario</button>
+            
+            <article id="contenido-articulo-activo" class="card"></article>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button id="btn-editar-actual" class="btn btn-primary" onclick="abrirEditorArticuloActual()">✏️ Editar Publicación</button>
+                <button id="btn-ver-historial-articulo" class="btn btn-outline" onclick="toggleHistorialArticulo()">📜 Ver Historial de Cambios</button>
+            </div>
+
+            <!-- Panel desplegable con historial del artículo activo -->
+            <div id="panel-historial-articulo" class="card" style="display: none; background-color: #f8fafc;">
+                <h4 style="margin-bottom: 10px;">📜 Historial de Versiones Anteriores</h4>
+                <div id="lista-versiones-articulo"></div>
+            </div>
+        </section>
+
+        <!-- 4. MÓDULO EDITOR / CREAR Y EDITAR PUBLICACIÓN -->
+        <section id="modulo-editor" class="modulo" style="display: none;">
+            <h2 id="titulo-form-editor">✏️ Crear Nueva Publicación</h2>
+            
+            <div class="card" style="margin-top: 15px;">
+                <form id="form-publicacion" onsubmit="guardarPublicacion(event)">
+                    <input type="hidden" id="edit-pub-id">
+
+                    <label>Título del Artículo:</label>
+                    <input type="text" id="form-titulo" required placeholder="Ej. Gestión de Memoria Virtual">
+
+                    <div class="grid-2">
+                        <div>
+                            <label>Tipo:</label>
+                            <select id="form-tipo">
+                                <option value="Concepto">Concepto</option>
+                                <option value="Algoritmo">Algoritmo</option>
+                                <option value="Comando">Comando</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Categoría:</label>
+                            <input type="text" id="form-categoria" required placeholder="Ej. Memoria, Concurrencia, E/S">
+                        </div>
+                    </div>
+
+                    <label>Autor:</label>
+                    <input type="text" id="form-autor" required placeholder="Tu nombre o usuario">
+
+                    <label>Contenido (Soporta HTML e Imágenes Base64):</label>
+                    <div style="margin-bottom: 10px;">
+                        <input type="file" id="form-imagen-file" accept="image/*" onchange="insertarImagenBase64(event)">
+                    </div>
+                    <textarea id="form-contenido" rows="8" required oninput="actualizarVistaPreviaEditor()"></textarea>
+
+                    <button type="submit" class="btn btn-primary">💾 Guardar Publicación</button>
+                </form>
+            </div>
+
+            <h3>👁️ Vista Previa en Vivo</h3>
+            <div id="vista-previa-editor" class="card" style="background: white; min-height: 100px;"></div>
+        </section>
+
+        <!-- 5. MÓDULO SIMULADOR RAM -->
+        <section id="modulo-ram" class="modulo" style="display: none;">
+            <h2>🧠 Simulador de Memoria RAM (1024 MB - Aislado por Sesión)</h2>
+            <p style="color: var(--text-muted); margin-bottom: 15px;">Espacio de simulación privado. Las acciones de asignación y liberación no afectan a otros usuarios.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3>➕ Inyectar Proceso</h3>
+                    <form onsubmit="agregarProcesoRAM(event)">
+                        <label>Nombre del Proceso:</label>
+                        <input type="text" id="ram-nombre" placeholder="Ej. Proceso_Web" required>
+
+                        <label>Tamaño (MB):</label>
+                        <input type="number" id="ram-tamano" value="128" min="16" max="1024" required>
+
+                        <label>Duración (Segundos):</label>
+                        <input type="number" id="ram-duracion" value="15" min="5" max="60" required>
+
+                        <button type="submit" class="btn btn-primary">Cargar a RAM</button>
+                        <button type="button" class="btn btn-outline" onclick="generarLoteAleatorioRAM()">🎲 Generar Lote Aleatorio</button>
+                        <button type="button" class="btn btn-danger" onclick="resetearRAM()">🔄 Reiniciar RAM</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>📊 Estado de la Memoria</h3>
+                    <p><strong>Uso de RAM:</strong> <span id="ram-texto-uso">0 / 1024 MB</span></p>
+                    <div style="background: #e2e8f0; border-radius: 6px; height: 20px; overflow: hidden; margin: 10px 0;">
+                        <div id="ram-barra-progreso" style="background: var(--primary); width: 0%; height: 100%; transition: width 0.3s;"></div>
+                    </div>
+
+                    <h4>Procesos en Ejecución</h4>
+                    <div id="ram-lista-ejecucion" style="margin-bottom: 15px;"></div>
+
+                    <h4>Cola de Espera</h4>
+                    <div id="ram-lista-espera"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. MÓDULO SIMULADOR DE CONCURRENCIA -->
+        <section id="modulo-concurrencia" class="modulo" style="display: none;">
+            <h2>⚡ Simulador de Concurrencia Global (Asientos de Vuelo)</h2>
+            <p style="color: var(--text-muted); margin-bottom: 15px;">Demostración multiusuario en tiempo real. Sincronización automática vía Polling (1.5s) y Mutex Lock con auto-release de 30s TTL.</p>
+
+            <div class="card" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="toggleMutexConcurrencia()">🔒 Alternar Mutex Lock</button>
+                <button class="btn btn-outline" onclick="dispararRafagaConcurrencia()">⚡ Lanzar Ráfaga (10 Hilos)</button>
+                <button class="btn btn-danger" onclick="resetearConcurrencia()">🔄 Limpiar Vuelo</button>
+                <span id="concurrencia-estado-mutex" class="badge" style="background: #e2e8f0;">MUTEX: INACTIVO</span>
             </div>
 
             <div class="grid-2">
                 <div class="card">
-                    <h3>💡 Últimas Publicaciones</h3>
-                    <div id="lista-recientes" style="margin-top: 1rem;">
-                        <p style="color: var(--text-muted);">Cargando publicaciones...</p>
-                    </div>
+                    <h3>🪑 Mapa de Asientos del Vuelo</h3>
+                    <div id="concurrencia-mapa-asientos" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px;"></div>
                 </div>
+
                 <div class="card">
-                    <h3>🧠 Estado Rápido del Simulador</h3>
-                    <p style="margin: 0.75rem 0; color: var(--text-muted);">Monitorea y asigna bloques de memoria simulando los algoritmos de gestión de RAM.</p>
-                    <button class="btn btn-outline" onclick="mostrarSeccion('simulador')">Ir al Simulador</button>
+                    <h3>🖥️ Consola de Eventos del Kernel</h3>
+                    <div id="concurrencia-terminal-logs" style="background: #1e293b; color: #f8fafc; font-family: monospace; font-size: 0.85rem; padding: 12px; border-radius: 6px; height: 250px; overflow-y: auto;"></div>
                 </div>
             </div>
         </section>
 
-        <!-- 2. SECCIÓN: GLOSARIO -->
-        <section id="glosario" class="modulo">
-            <div class="card">
-                <div class="section-header">
-                    <h2>Glosario & Artículos Académicos</h2>
-                    <p style="color: var(--text-muted);">Consulta las publicaciones agregadas por la comunidad.</p>
-                </div>
+        <!-- 7. MÓDULO ALGORITMO DEL BANQUERO -->
+        <section id="modulo-banquero" class="modulo" style="display: none;">
+            <h2>🏦 Simulador del Algoritmo del Banquero (Prevención de Deadlocks)</h2>
+            <p style="color: var(--text-muted); margin-bottom: 15px;">Evalúa si el sistema se encuentra en un Estado Seguro analizando matrices de asignación y necesidad de recursos.</p>
 
-                <div class="filter-bar">
-                    <input type="text" id="input-buscar" placeholder="Buscar por título o contenido..." oninput="filtrarPublicaciones()">
-                    <select id="select-categoria" onchange="filtrarPublicaciones()">
-                        <option value="todas">Todas las Categorías</option>
-                        <option value="Sistemas Operativos">Sistemas Operativos</option>
-                        <option value="Estructuras de Datos">Estructuras de Datos</option>
-                        <option value="Algoritmos">Algoritmos</option>
-                        <option value="Bases de Datos">Bases de Datos</option>
-                    </select>
-                </div>
-
-                <div id="contenedor-articulos" class="grid-cards"></div>
+            <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="cargarCasoEjemploBanquero('caso_1_seguro')">📘 Caso 1: Seguro</button>
+                <button class="btn btn-secondary" onclick="cargarCasoEjemploBanquero('caso_2_inseguro')">⚠️ Caso 2: Inseguro</button>
             </div>
+
+            <div class="card" style="background: #f8fafc;">
+                <h3 id="banquero-titulo-caso">Selecciona un escenario académico</h3>
+                <div id="banquero-vistas-matrices" style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px;"></div>
+                <button class="btn btn-primary" style="margin-top: 20px;" onclick="ejecutarEvaluacionBanquero()">⚡ Evaluar Estado de Seguridad</button>
+            </div>
+
+            <div id="banquero-resultado" class="card" style="margin-top: 20px; display: none;"></div>
         </section>
 
-        <!-- 3. SECCIÓN: LECTURA COMPLETA (DETALLE DEL ARTÍCULO) -->
-        <section id="modulo-lectura" class="modulo" style="display: none;">
-            <div class="card">
-                <button class="btn btn-secondary" onclick="mostrarSeccion('glosario')" style="margin-bottom: 1.5rem;">
-                    ← Volver al Glosario
-                </button>
-                <article class="articulo-completo">
-                    <span id="lectura-categoria" class="badge" style="background-color: var(--primary-color, #2563eb); color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;"></span>
-                    <h1 id="lectura-titulo" style="margin: 1rem 0 0.5rem 0; font-size: 2rem;"></h1>
-                    <p class="meta-info" style="color: var(--text-muted, #666); margin-bottom: 1.5rem; font-size: 0.95rem;">
-                        Por <strong id="lectura-autor"></strong> — <span id="lectura-fecha"></span>
-                    </p>
-                    <hr style="border: 0; border-top: 1px solid #e5e7eb; margin-bottom: 1.5rem;">
-                    <div id="lectura-contenido" class="contenido-body" style="line-height: 1.8; font-size: 1.1rem; color: #1f2937;"></div>
-                </article>
-            </div>
-        </section>
-
-        <!-- 4. SECCIÓN: PUBLICAR / EDITAR -->
-        <section id="publicar" class="modulo">
-            <div class="card form-container">
-                <h2 id="form-titulo-header">Publicar Definición o Artículo</h2>
-                <form id="form-publicacion" onsubmit="guardarPublicacion(event)">
-                    <input type="hidden" id="edit-id" value="">
-
-                    <div class="form-group">
-                        <label for="titulo">Título de la publicación</label>
-                        <input type="text" id="titulo" required placeholder="Ej. Paginación de Memoria">
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="tipo">Tipo de Contenido</label>
-                            <select id="tipo" required>
-                                <option value="Definición">Definición</option>
-                                <option value="Artículo">Artículo Académico</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="categoria">Categoría</label>
-                            <select id="categoria" required>
-                                <option value="Sistemas Operativos">Sistemas Operativos</option>
-                                <option value="Estructuras de Datos">Estructuras de Datos</option>
-                                <option value="Algoritmos">Algoritmos</option>
-                                <option value="Bases de Datos">Bases de Datos</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="autor">Autor / Usuario</label>
-                        <input type="text" id="autor" required placeholder="Ej. Estudiante UMG">
-                    </div>
-
-                    <!-- BLOQUE DE TEXTAREA Y BOTONES -->
-                    <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 8px;">
-                            <label for="contenido" style="margin-bottom: 0;">Contenido</label>
-                            <div class="toolbar-imagenes" style="display: flex; gap: 0.5rem;">
-                                <button type="button" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.85rem;" onclick="insertarImagenURL()">🌐 Insertar Imagen URL</button>
-                                <label class="btn btn-outline" style="padding: 4px 10px; font-size: 0.85rem; cursor: pointer; margin-bottom: 0;">
-                                    📁 Subir Imagen PC (Base64)
-                                    <input type="file" id="file-imagen-base64" accept="image/*" onchange="insertarImagenBase64(event)" style="display: none;">
-                                </label>
-                            </div>
-                        </div>
-                        <textarea id="contenido" rows="8" required placeholder="Escribe el desarrollo del tema aquí... Usa los botones superiores para insertar imágenes en cualquier párrafo."></textarea>
-                    </div>
-
-                    <!-- BLOQUE INDEPENDIENTE DE VISTA PREVIA EN VIVO -->
-                    <div class="form-group">
-                        <label>Vista Previa en Vivo (Así se verá publicado):</label>
-                        <div id="vista-previa-editor" style="border: 1px dashed #cbd5e1; padding: 15px; border-radius: 8px; background: #fafafa; min-height: 80px; max-height: 300px; overflow-y: auto;">
-                            <span style="color: #94a3b8; font-style: italic;">La vista previa de tu texto e imágenes aparecerá aquí conforme escribas...</span>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; gap: 10px;">
-                        <button type="submit" id="btn-guardar-pub" class="btn btn-primary" style="flex: 1;">Guardar y Publicar</button>
-                        <button type="button" id="btn-cancelar-edicion" class="btn btn-secondary" style="display: none;" onclick="cancelarEdicion()">Cancelar Edición</button>
-                    </div>
-                </form>
-            </div>
-        </section>
-
-        <!-- 5. SECCIÓN: SIMULADOR RAM -->
-        <section id="simulador" class="modulo">
-            <div class="card">
-                <h2>Simulador de Memoria RAM (Total: 1024 MB)</h2>
-
-                <div class="stats-grid">
-                    <div class="stat-box">
-                        <small>RAM Usada</small>
-                        <p id="ram-usada">0 MB (0%)</p>
-                    </div>
-                    <div class="stat-box">
-                        <small>RAM Disponible</small>
-                        <p id="ram-disponible">1024 MB</p>
-                    </div>
-                </div>
-
-                <div class="ram-progress-container">
-                    <div id="ram-bar" class="ram-progress-bar" style="width: 0%;"></div>
-                </div>
-
-                <div class="sim-controls">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 1rem;">
-                        <h3>Crear Nuevo Proceso</h3>
-                        <button type="button" class="btn" style="background-color: #6f42c1; color: white;" onclick="ejecutarEscenarioAleatorioRAM()">
-                            🎲 Generar Escenario Aleatorio de Estrés (TTL > 15s)
-                        </button>
-                    </div>
-                    <form id="form-proceso" onsubmit="agregarProcesoSimulador(event)" class="form-inline">
-                        <input type="text" id="proc-nombre" placeholder="Nombre (Ej. Navegador)" required style="flex: 2;">
-                        <input type="number" id="proc-tamano" min="16" max="1024" value="128" placeholder="MB" required style="width: 90px;" title="Tamaño en MB">
-                        <input type="number" id="proc-tiempo" min="1" max="60" value="18" placeholder="Segundos" required style="width: 90px;" title="Tiempo de ejecución en segundos">
-                        <button type="submit" class="btn btn-primary">Agregar</button>
-                        <button type="button" class="btn btn-danger" onclick="reiniciarSimulador()">Reiniciar</button>
-                    </form>
-                </div>
-
-                <hr class="divider">
-
-                <div class="grid-2">
-                    <div>
-                        <h3>Procesos en Ejecución (RAM)</h3>
-                        <ul id="lista-ejecucion" class="process-list"></ul>
-                    </div>
-                    <div>
-                        <h3>Cola de Espera</h3>
-                        <ul id="lista-espera" class="process-list"></ul>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-       <!-- 6. SECCIÓN: SIMULADOR CONCURRENCIA -->
-        <section id="simulador-concurrencia" class="modulo">
-            <div class="card-container">
-                <h2>Simulador de Concurrencia (Reserva de Vuelo)</h2>
-                <p class="subtitle">Interactúa con la cabina o ejecuta pruebas de estrés de hilos concurrentes (Overbooking vs Mutex Lock)</p>
-
-                <!-- Tarjetas Estadísticas -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <span class="stat-label">Estado de Integridad</span>
-                        <h3 id="stat-integridad">Esperando acción</h3>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-label">Asientos con Overbooking</span>
-                        <h3 id="stat-overbooking">0 / 12</h3>
-                    </div>
-                </div>
-
-                <!-- Panel de Control y Botones -->
-                <div class="control-panel">
-                    <div class="mode-toggle">
-                        <label>
-                            <input type="checkbox" id="chk-modo-protegido">
-                            <span>Activar Mutex Lock (Sección Crítica)</span>
-                        </label>
-                    </div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn btn-primary" onclick="ejecutarSimulacionConcurrencia()">🚀 Estrés Hilos Aleatorios</button>
-                        <button class="btn btn-danger" onclick="reiniciarVuelo()">🔄 Reiniciar Avión</button>
-                    </div>
-                </div>
-
-                <!-- CABINA DEL AVIÓN INTERACTIVA -->
-                <div class="airplane-container">
-                    <div class="airplane-cockpit">
-                        ✈️ FRENTE DE LA CABINA / COCKPIT
-                    </div>
-
-                    <!-- Leyenda de colores -->
-                    <div class="cabin-legend">
-                        <span><i class="dot dot-available"></i> Disponible</span>
-                        <span><i class="dot dot-confirmed"></i> Reservado</span>
-                        <span><i class="dot dot-conflict"></i> Overbooking</span>
-                    </div>
-
-                    <!-- Mapa de Asientos -->
-                    <div id="grid-cabina" class="cabin-grid">
-                        <p class="placeholder-text">Cargando cabina...</p>
-                    </div>
-                </div>
-
-                <!-- Formulario de Reserva Manual de Usuario -->
-                <div class="manual-booking-box">
-                    <h3>💺 Selección Manual de Asiento</h3>
-                    <div class="form-inline" style="margin-top: 10px;">
-                        <select id="select-asiento-manual" class="form-control">
-                            <option value="">Cargando asientos disponibles...</option>
-                        </select>
-                        <input type="text" id="input-pasajero-nombre" placeholder="Nombre del Pasajero (Ej. Carlos)" value="Pasajero Web">
-                        <button class="btn btn-primary" onclick="reservarAsientoManual()">Confirmar Reserva</button>
-                    </div>
-                </div>
-
-                <!-- Consola de Registro de Hilos -->
-                <h3 class="section-title">Registro de Ejecución (Kernel execution log)</h3>
-                <pre id="terminal-logs" class="terminal-box">Sistema de vuelo iniciado. Selecciona un asiento o lanza la prueba de hilos.</pre>
-            </div>
-        </section>
     </main>
 
-    <!-- ARCHIVO JS CONECTADO EXTERNAMENTE -->
+    <!-- JS PRINCIPAL -->
     <script src="app.js"></script>
 </body>
 </html>
