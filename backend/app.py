@@ -12,12 +12,20 @@ try:
 except ImportError:
     HAS_LIBSQL = False
 
-app = Flask(__name__)
+# Configurar Flask para servir los archivos estáticos desde la carpeta frontend
+FRONTEND_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend'))
+
+app = Flask(__name__, static_folder=FRONTEND_FOLDER, static_url_path='')
 CORS(app)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'wiki.db')
 TURSO_DATABASE_URL = os.getenv("TURSO_DATABASE_URL")
 TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
+
+# Ruta raíz para entregar la interfaz HTML principal
+@app.route('/')
+def serve_index():
+    return app.send_static_file('index.html')
 
 # ==========================================
 # CONEXIÓN Y CONFIGURACIÓN DE BASE DE DATOS
@@ -99,13 +107,11 @@ def resumen_inicio():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Últimas 3 publicaciones
     cursor.execute("SELECT * FROM publicaciones ORDER BY id DESC LIMIT 3")
     pubs = [dict(f) if isinstance(f, dict) else {
         "id": f[0], "titulo": f[1], "tipo": f[2], "categoria": f[3], "autor": f[4], "fecha": f[5], "contenido": f[6]
     } for f in cursor.fetchall()]
     
-    # Últimos 3 cambios registrados en la auditoría
     cursor.execute("""
         SELECT id, publicacion_id, tipo_accion, titulo_anterior, autor_modificador, fecha_modificacion 
         FROM historial_publicaciones 
@@ -143,7 +149,6 @@ def crear_publicacion():
     ''', (data['titulo'], data['tipo'], data['categoria'], data['autor'], fecha_actual, data['contenido']))
     new_id = cursor.lastrowid
     
-    # Registrar auditoría de creación
     cursor.execute('''
         INSERT INTO historial_publicaciones (publicacion_id, tipo_accion, titulo_anterior, contenido_anterior, autor_modificador)
         VALUES (?, 'CREACION', ?, ?, ?)
