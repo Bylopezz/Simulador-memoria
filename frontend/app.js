@@ -12,8 +12,9 @@ let simuladorRAM = {
 };
 
 let publicacionesLocales = [];
+let editandoId = null; // Guarda el ID de la publicación cuando se está editando
 
-// Datos iniciales de fallback
+// Datos iniciales de fallback por si la API no responde
 const publicacionesIniciales = [
     {
         id: 1,
@@ -41,6 +42,7 @@ const publicacionesIniciales = [
 document.addEventListener("DOMContentLoaded", () => {
     cargarPublicaciones();
     actualizarVistaSimulador();
+    cargarEstadoVuelo();
 });
 
 // ==========================================
@@ -50,6 +52,7 @@ function mostrarSeccion(idSeccion) {
     // 1. Ocultar todos los módulos
     document.querySelectorAll(".modulo").forEach(modulo => {
         modulo.classList.remove("active");
+        modulo.style.display = "none";
     });
 
     // 2. Desactivar todos los botones del menú
@@ -61,6 +64,7 @@ function mostrarSeccion(idSeccion) {
     const seccionObj = document.getElementById(idSeccion);
     if (seccionObj) {
         seccionObj.classList.add("active");
+        seccionObj.style.display = "block";
     }
 
     // 4. Activar el botón correspondiente en el menú superior
@@ -72,7 +76,66 @@ function mostrarSeccion(idSeccion) {
 }
 
 // ==========================================
-// GESTIÓN DE PUBLICACIONES (WIKI)
+// HERRAMIENTAS DE IMÁGENES (URL & BASE64 COMPRIMIDO)
+// ==========================================
+function insertarEnCursor(textareaId, textoAInsertar) {
+    const textarea = document.getElementById(textareaId);
+    if (!textarea) return;
+
+    const startPos = textarea.selectionStart || 0;
+    const endPos = textarea.selectionEnd || 0;
+
+    textarea.value = textarea.value.substring(0, startPos) + textoAInsertar + textarea.value.substring(endPos);
+    textarea.selectionStart = startPos + textoAInsertar.length;
+    textarea.selectionEnd = startPos + textoAInsertar.length;
+    textarea.focus();
+}
+
+function insertarImagenURL() {
+    const url = prompt("Ingresa la URL pública de la imagen:");
+    if (url && url.trim() !== "") {
+        const imgTag = `\n<img src="${url.trim()}" class="wiki-img" style="max-width:100%; border-radius:8px; margin:15px 0; display:block;" alt="Imagen URL">\n`;
+        insertarEnCursor("contenido", imgTag);
+    }
+}
+
+function insertarImagenBase64(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+            // Reescalar con Canvas para mantener un tamaño máximo de 1080px y optimizar espacio en SQLite
+            const canvas = document.createElement("canvas");
+            const maxAncho = 1080;
+            let escala = 1;
+
+            if (img.width > maxAncho) {
+                escala = maxAncho / img.width;
+            }
+
+            canvas.width = img.width * escala;
+            canvas.height = img.height * escala;
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // Convertir a JPEG Base64 comprimido al 80%
+            const base64Comprimido = canvas.toDataURL("image/jpeg", 0.8);
+            const imgTag = `\n<img src="${base64Comprimido}" class="wiki-img" style="max-width:100%; border-radius:8px; margin:15px 0; display:block;" alt="Imagen Base64">\n`;
+
+            insertarEnCursor("contenido", imgTag);
+            event.target.value = ""; // Limpiar selector
+        };
+    };
+    reader.readAsDataURL(file);
+}
+
+// ==========================================
+// GESTIÓN DE PUBLICACIONES (WIKI & CRUD)
 // ==========================================
 async function cargarPublicaciones() {
     try {
@@ -98,16 +161,27 @@ function renderizarPublicaciones(lista) {
         return;
     }
 
-    contenedor.innerHTML = lista.map(pub => `
-        <article class="article-card">
-            <div>
-                <span class="article-badge">${pub.tipo} • ${pub.categoria}</span>
-                <h3 class="article-title">${pub.titulo}</h3>
-                <p class="article-meta">Por <strong>${pub.autor}</strong> — ${pub.fecha}</p>
-                <p style="font-size: 0.95rem; color: #334155;">${pub.contenido}</p>
-            </div>
-        </article>
-    `).join("");
+    contenedor.innerHTML = lista.map(pub => {
+        // Limpiar etiquetas HTML/imágenes para la vista previa de la tarjeta
+        const textoPlano = pub.contenido.replace(/<[^>]*>?/gm, '');
+        const extracto = textoPlano.length > 120 ? textoPlano.substring(0, 120) + "..." : textoPlano;
+
+        return `
+            <article class="article-card" style="display:flex; flex-direction:column; justify-content:space-between; padding:1.2rem; border:1px solid #e2e8f0; border-radius:8px; background:white;">
+                <div>
+                    <span class="article-badge" style="background:#e2e8f0; color:#334155; padding:3px 8px; border-radius:4px; font-size:0.8rem; font-weight:600;">${pub.tipo} • ${pub.categoria}</span>
+                    <h3 class="article-title" style="margin:0.5rem 0 0.2rem 0; font-size:1.2rem;">${pub.titulo}</h3>
+                    <p class="article-meta" style="font-size:0.85rem; color:#64748b; margin-bottom:0.8rem;">Por <strong>${pub.autor}</strong> — ${pub.fecha}</p>
+                    <p style="font-size: 0.95rem; color: #334155; line-height:1.5;">${extracto}</p>
+                </div>
+                <div style="margin-top: 1rem; display: flex; gap: 8px; border-top: 1px solid #f1f5f9; padding-top: 0.8rem;">
+                    <button class="btn btn-outline" style="padding:4px 10px; font-size:0.85rem;" onclick="verArticuloCompleto(${pub.id})">👁️ Leer</button>
+                    <button class="btn btn-outline" style="padding:4px 10px; font-size:0.85rem;" onclick="cargarParaEditar(${pub.id})">✏️ Editar</button>
+                    <button class="btn btn-danger" style="padding:4px 10px; font-size:0.85rem;" onclick="eliminarPublicacion(${pub.id})">🗑️</button>
+                </div>
+            </article>
+        `;
+    }).join("");
 }
 
 function renderizarRecientes(lista) {
@@ -116,38 +190,118 @@ function renderizarRecientes(lista) {
 
     const ultimos = [...lista].reverse().slice(0, 3);
     contenedor.innerHTML = ultimos.map(pub => `
-        <div style="padding: 0.6rem 0; border-bottom: 1px solid var(--border-color);">
-            <strong style="color: var(--navy-dark);">${pub.titulo}</strong>
+        <div style="padding: 0.6rem 0; border-bottom: 1px solid var(--border-color, #e2e8f0);">
+            <strong style="color: var(--navy-dark, #0f172a);">${pub.titulo}</strong>
             <br>
-            <small style="color: var(--text-muted);">${pub.tipo} | ${pub.categoria}</small>
+            <small style="color: var(--text-muted, #64748b);">${pub.tipo} | ${pub.categoria}</small>
         </div>
     `).join("");
+}
+
+async function verArticuloCompleto(id) {
+    try {
+        const res = await fetch(`${API_URL}/publicaciones/${id}`);
+        let pub;
+        if (res.ok) {
+            pub = await res.json();
+        } else {
+            pub = publicacionesLocales.find(p => p.id === id);
+        }
+
+        if (!pub) return;
+
+        document.getElementById("lectura-categoria").innerText = `${pub.tipo} • ${pub.categoria}`;
+        document.getElementById("lectura-titulo").innerText = pub.titulo;
+        document.getElementById("lectura-autor").innerText = pub.autor;
+        document.getElementById("lectura-fecha").innerText = pub.fecha;
+
+        // Inyectar HTML permitiendo que las etiquetas de imagen e interlineado se rendericen adecuadamente
+        document.getElementById("lectura-contenido").innerHTML = pub.contenido;
+
+        mostrarSeccion("modulo-lectura");
+    } catch (err) {
+        console.error("Error al cargar artículo completo:", err);
+    }
+}
+
+async function cargarParaEditar(id) {
+    try {
+        const res = await fetch(`${API_URL}/publicaciones/${id}`);
+        let pub;
+        if (res.ok) {
+            pub = await res.json();
+        } else {
+            pub = publicacionesLocales.find(p => p.id === id);
+        }
+
+        if (!pub) return;
+
+        editandoId = id;
+        document.getElementById("edit-id").value = id;
+        document.getElementById("titulo").value = pub.titulo;
+        document.getElementById("tipo").value = pub.tipo;
+        document.getElementById("categoria").value = pub.categoria;
+        document.getElementById("autor").value = pub.autor;
+        document.getElementById("contenido").value = pub.contenido;
+
+        document.getElementById("form-titulo-header").innerText = "Editar Publicación";
+        document.getElementById("btn-guardar-pub").innerText = "Guardar Cambios";
+        document.getElementById("btn-cancelar-edicion").style.display = "inline-block";
+
+        mostrarSeccion("publicar");
+    } catch (err) {
+        console.error("Error al preparar edición:", err);
+    }
+}
+
+function cancelarEdicion() {
+    editandoId = null;
+    document.getElementById("edit-id").value = "";
+    document.getElementById("form-publicacion").reset();
+    document.getElementById("form-titulo-header").innerText = "Publicar Definición o Artículo";
+    document.getElementById("btn-guardar-pub").innerText = "Guardar y Publicar";
+    document.getElementById("btn-cancelar-edicion").style.display = "none";
 }
 
 async function guardarPublicacion(event) {
     event.preventDefault();
 
-    const nuevaPub = {
+    const payload = {
         titulo: document.getElementById("titulo").value,
         tipo: document.getElementById("tipo").value,
         categoria: document.getElementById("categoria").value,
         autor: document.getElementById("autor").value,
+        fecha: new Date().toISOString().split('T')[0],
         contenido: document.getElementById("contenido").value
     };
 
+    const url = editandoId ? `${API_URL}/publicaciones/${editandoId}` : `${API_URL}/publicaciones`;
+    const method = editandoId ? 'PUT' : 'POST';
+
     try {
-        await fetch(`${API_URL}/publicaciones`, {
-            method: 'POST',
+        await fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nuevaPub)
+            body: JSON.stringify(payload)
         });
     } catch (err) {
         console.error("Error al guardar publicación:", err);
     }
 
-    document.getElementById("form-publicacion").reset();
+    cancelarEdicion();
     await cargarPublicaciones();
     mostrarSeccion("glosario");
+}
+
+async function eliminarPublicacion(id) {
+    if (confirm("¿Estás seguro de que deseas eliminar esta publicación de la Wiki?")) {
+        try {
+            await fetch(`${API_URL}/publicaciones/${id}`, { method: 'DELETE' });
+        } catch (err) {
+            console.error("Error al eliminar publicación:", err);
+        }
+        await cargarPublicaciones();
+    }
 }
 
 function filtrarPublicaciones() {
@@ -210,7 +364,7 @@ function agregarProcesoSimulador(event) {
 
     const nombre = nombreInput.value.trim();
     const tamano = parseInt(tamanoInput.value);
-    const tiempo = parseInt(tiempoInput.value) || 5;
+    const tiempo = parseInt(tiempoInput.value) || 18;
 
     if (!nombre || isNaN(tamano) || tamano <= 0) return;
 
@@ -232,10 +386,44 @@ function agregarProcesoSimulador(event) {
 
     nombreInput.value = "";
     tamanoInput.value = "128";
-    if (tiempoInput) tiempoInput.value = "5";
+    if (tiempoInput) tiempoInput.value = "18";
 
     iniciarRelojRAM();
     actualizarVistaSimulador();
+}
+
+async function ejecutarEscenarioAleatorioRAM() {
+    try {
+        const res = await fetch(`${API_URL}/simulador/lote-aleatorio`, { method: 'POST' });
+        if (res.ok) {
+            const estadoBackend = await res.json();
+            
+            // Sincronizar el estado del backend con el temporizador local del frontend
+            simuladorRAM.procesosEjecucion = estadoBackend.procesos_ejecucion.map(p => ({
+                id: p.id,
+                nombre: p.nombre,
+                tamano: p.tamano_mb,
+                tiempoTotal: p.ttl_inicial || p.ttl,
+                tiempoRestante: p.ttl
+            }));
+
+            simuladorRAM.colaEspera = estadoBackend.cola_espera.map(p => ({
+                id: p.id,
+                nombre: p.nombre,
+                tamano: p.tamano_mb,
+                tiempoTotal: p.ttl_inicial || p.ttl,
+                tiempoRestante: p.ttl
+            }));
+
+            simuladorRAM.usada = estadoBackend.ram_usada_mb;
+            simuladorRAM.siguienteId = estadoBackend.siguiente_id;
+
+            iniciarRelojRAM();
+            actualizarVistaSimulador();
+        }
+    } catch (err) {
+        console.error("Error al generar escenario aleatorio:", err);
+    }
 }
 
 function terminarProceso(idProceso) {
@@ -276,6 +464,7 @@ function reiniciarSimulador() {
         colaEspera: [],
         siguienteId: 1
     };
+    fetch(`${API_URL}/simulador/reiniciar`, { method: 'POST' }).catch(() => {});
     actualizarVistaSimulador();
 }
 
@@ -300,7 +489,7 @@ function actualizarVistaSimulador() {
         }
     }
 
-    // Renderizar procesos en ejecución con temporizador
+    // Renderizar procesos en ejecución
     const listEjec = document.getElementById("lista-ejecucion");
     if (listEjec) {
         if (simuladorRAM.procesosEjecucion.length === 0) {
@@ -309,19 +498,19 @@ function actualizarVistaSimulador() {
             listEjec.innerHTML = simuladorRAM.procesosEjecucion.map(p => {
                 const pctTiempo = Math.max(0, Math.min(100, (p.tiempoRestante / p.tiempoTotal) * 100));
                 return `
-                    <li class="process-item" style="flex-direction: column; align-items: stretch; gap: 6px;">
+                    <li class="process-item" style="flex-direction: column; align-items: stretch; gap: 6px; padding:8px; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:6px; background:white;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <strong>${p.nombre}</strong> <small style="color:var(--text-muted);">(ID: ${p.id})</small>
-                                <br><small style="color:var(--blue-primary); font-weight:600;">${p.tamano} MB</small>
+                                <strong>${p.nombre}</strong> <small style="color:#64748b;">(ID: ${p.id})</small>
+                                <br><small style="color:#2563eb; font-weight:600;">${p.tamano} MB</small>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:0.8rem;">⏱️ ${p.tiempoRestante}s</span>
+                                <span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:0.8rem; padding:2px 6px; border-radius:4px;">⏱️ ${p.tiempoRestante}s</span>
                                 <button class="btn btn-danger" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="terminarProceso(${p.id})">Terminar</button>
                             </div>
                         </div>
                         <div style="background:#e2e8f0; height: 4px; border-radius:2px; overflow:hidden;">
-                            <div style="background:var(--blue-primary); height:100%; width:${pctTiempo}%; transition: width 0.3s linear;"></div>
+                            <div style="background:#2563eb; height:100%; width:${pctTiempo}%; transition: width 0.3s linear;"></div>
                         </div>
                     </li>
                 `;
@@ -336,10 +525,10 @@ function actualizarVistaSimulador() {
             listEsp.innerHTML = `<li style="color: var(--text-muted); padding: 0.5rem 0;">No hay procesos en espera.</li>`;
         } else {
             listEsp.innerHTML = simuladorRAM.colaEspera.map(p => `
-                <li class="process-item" style="border-left: 3px solid var(--warning-color);">
+                <li class="process-item" style="border-left: 3px solid #f59e0b; padding:8px; border-radius:6px; margin-bottom:6px; background:white; display:flex; justify-content:space-between; align-items:center;">
                     <div>
-                        <strong>${p.nombre}</strong> <small style="color:var(--text-muted);">(ID: ${p.id})</small>
-                        <br><small style="color:var(--warning-color); font-weight:600;">${p.tamano} MB [Esperando RAM] (${p.tiempoTotal}s)</small>
+                        <strong>${p.nombre}</strong> <small style="color:#64748b;">(ID: ${p.id})</small>
+                        <br><small style="color:#d97706; font-weight:600;">${p.tamano} MB [Esperando RAM] (${p.tiempoTotal}s)</small>
                     </div>
                     <button class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="terminarProceso(${p.id})">Cancelar</button>
                 </li>
@@ -351,12 +540,6 @@ function actualizarVistaSimulador() {
 // ==========================================
 // SIMULADOR DE CONCURRENCIA (CABINA DE VUELO)
 // ==========================================
-
-// Cargar el estado del avión al iniciar o cambiar a la sección
-document.addEventListener("DOMContentLoaded", () => {
-    cargarEstadoVuelo();
-});
-
 async function cargarEstadoVuelo() {
     try {
         const res = await fetch(`${API_URL}/simulador-concurrencia/estado`);
@@ -370,28 +553,30 @@ async function cargarEstadoVuelo() {
 }
 
 function actualizarVistaCabina(data) {
-    // 1. Actualizar Métricas Estadísticas
     const elIntegridad = document.getElementById('stat-integridad');
     const elOverbooking = document.getElementById('stat-overbooking');
 
-    if (data.asientos_con_overbooking > 0) {
-        elIntegridad.textContent = "❌ OVERBOOKING DETECTADO";
-        elIntegridad.style.color = "#ef4444";
-    } else if (data.conteo_exito > 0) {
-        elIntegridad.textContent = "✅ INTEGRIDAD GARANTIZADA";
-        elIntegridad.style.color = "#10b981";
-    } else {
-        elIntegridad.textContent = "Esperando acción";
-        elIntegridad.style.color = "#64748b";
+    if (elIntegridad) {
+        if (data.asientos_con_overbooking > 0) {
+            elIntegridad.textContent = "❌ OVERBOOKING DETECTADO";
+            elIntegridad.style.color = "#ef4444";
+        } else if (data.conteo_exito > 0) {
+            elIntegridad.textContent = "✅ INTEGRIDAD GARANTIZADA";
+            elIntegridad.style.color = "#10b981";
+        } else {
+            elIntegridad.textContent = "Esperando acción";
+            elIntegridad.style.color = "#64748b";
+        }
     }
 
-    elOverbooking.textContent = `${data.asientos_con_overbooking} de 12 asientos`;
+    if (elOverbooking) {
+        elOverbooking.textContent = `${data.asientos_con_overbooking} de 12 asientos`;
+    }
 
-    // 2. Agrupar Asientos por Filas (Fila 1, 2, 3)
     const gridCabina = document.getElementById('grid-cabina');
     const selectManual = document.getElementById('select-asiento-manual');
 
-    gridCabina.innerHTML = "";
+    if (gridCabina) gridCabina.innerHTML = "";
     if (selectManual) selectManual.innerHTML = "";
 
     const filas = { "1": [], "2": [], "3": [] };
@@ -400,7 +585,6 @@ function actualizarVistaCabina(data) {
         const numFila = asiento.id[0];
         if (filas[numFila]) filas[numFila].push(asiento);
 
-        // Llenar combo de selección manual
         if (selectManual && !asiento.pasajero_confirmado) {
             const opt = document.createElement('option');
             opt.value = asiento.id;
@@ -413,34 +597,28 @@ function actualizarVistaCabina(data) {
         selectManual.innerHTML = "<option value=''>Vuelo Lleno</option>";
     }
 
-    // 3. Renderizar Filas de la Cabina
-    Object.keys(filas).forEach(f => {
-        const rowDiv = document.createElement('div');
-        rowDiv.className = 'cabin-row';
+    if (gridCabina) {
+        Object.keys(filas).forEach(f => {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'cabin-row';
 
-        const asientosFila = filas[f];
-        // Asientos Izquierda (A, B)
-        const leftSeats = asientosFila.filter(a => a.id.includes('A') || a.id.includes('B'));
-        // Asientos Derecha (C, D)
-        const rightSeats = asientosFila.filter(a => a.id.includes('C') || a.id.includes('D'));
+            const asientosFila = filas[f];
+            const leftSeats = asientosFila.filter(a => a.id.includes('A') || a.id.includes('B'));
+            const rightSeats = asientosFila.filter(a => a.id.includes('C') || a.id.includes('D'));
 
-        let html = "";
+            let html = "";
+            leftSeats.forEach(a => html += crearBotonAsientoHTML(a));
+            html += `<div class="aisle">Fila ${f}</div>`;
+            rightSeats.forEach(a => html += crearBotonAsientoHTML(a));
 
-        // Render A, B
-        leftSeats.forEach(a => html += crearBotonAsientoHTML(a));
-        // Pasillo Central
-        html += `<div class="aisle">Fila ${f}</div>`;
-        // Render C, D
-        rightSeats.forEach(a => html += crearBotonAsientoHTML(a));
+            rowDiv.innerHTML = html;
+            gridCabina.appendChild(rowDiv);
+        });
+    }
 
-        rowDiv.innerHTML = html;
-        gridCabina.appendChild(rowDiv);
-    });
-
-    // 4. Actualizar Logs de Ejecución
     const terminalLogs = document.getElementById('terminal-logs');
     if (terminalLogs) {
-        terminalLogs.textContent = `[PID OS: ${data.pid}]\n` + (data.logs.length > 0 ? data.logs.join('\n') : "Esperando acciones...");
+        terminalLogs.textContent = `[PID OS Kernel: ${data.pid}]\n` + (data.logs.length > 0 ? data.logs.join('\n') : "Esperando acciones...");
         terminalLogs.scrollTop = terminalLogs.scrollHeight;
     }
 }
@@ -468,22 +646,23 @@ function crearBotonAsientoHTML(asiento) {
     `;
 }
 
-// Selección rápida al hacer clic sobre el gráfico del asiento
 function seleccionarAsientoDirecto(idAsiento) {
     const select = document.getElementById('select-asiento-manual');
     if (select) {
         select.value = idAsiento;
-        document.getElementById('input-pasajero-nombre').focus();
+        const inputNombre = document.getElementById('input-pasajero-nombre');
+        if (inputNombre) inputNombre.focus();
     }
 }
 
-// Reservar de forma manual mediante el botón
 async function reservarAsientoManual() {
     const select = document.getElementById('select-asiento-manual');
     const inputNombre = document.getElementById('input-pasajero-nombre');
 
+    if (!select) return;
+
     const idAsiento = select.value;
-    const pasajero = inputNombre.value.trim() || "Pasajero Web";
+    const pasajero = (inputNombre ? inputNombre.value.trim() : "") || "Pasajero Web";
 
     if (!idAsiento) {
         alert("Selecciona un asiento disponible.");
@@ -508,7 +687,6 @@ async function reservarAsientoManual() {
     }
 }
 
-// Reiniciar vuelo a estado cero
 async function reiniciarVuelo() {
     try {
         const res = await fetch(`${API_URL}/simulador-concurrencia/reiniciar`, { method: 'POST' });
@@ -521,18 +699,18 @@ async function reiniciarVuelo() {
     }
 }
 
-// Ejecutar prueba masiva de concurrencia
 async function ejecutarSimulacionConcurrencia() {
-    const modoProtegido = document.getElementById('chk-modo-protegido').checked;
+    const chkModo = document.getElementById('chk-modo-protegido');
+    const modoProtegido = chkModo ? chkModo.checked : false;
     const terminalLogs = document.getElementById('terminal-logs');
 
-    if (terminalLogs) terminalLogs.textContent = "Procesando 20 hilos en paralelo...";
+    if (terminalLogs) terminalLogs.textContent = "Lanzando ráfaga de hilos en paralelo...";
 
     try {
         const res = await fetch(`${API_URL}/simulador-concurrencia/ejecutar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ modo_protegido: modoProtegido, num_agentes: 20 })
+            body: JSON.stringify({ modo_protegido: modoProtegido })
         });
 
         if (res.ok) {
@@ -542,4 +720,122 @@ async function ejecutarSimulacionConcurrencia() {
     } catch (err) {
         console.error("Error en prueba de concurrencia:", err);
     }
+}
+
+// Escuchar cambios en el textarea de contenido para la vista previa
+document.getElementById("contenido")?.addEventListener("input", actualizarVistaPreviaEditor);
+
+function actualizarVistaPreviaEditor() {
+    const texto = document.getElementById("contenido").value;
+    const contenedorPreview = document.getElementById("vista-previa-editor");
+    
+    if (!contenedorPreview) return;
+
+    if (texto.trim() === "") {
+        contenedorPreview.innerHTML = `<span style="color: #94a3b8; font-style: italic;">La vista previa de tu texto e imágenes aparecerá aquí conforme escribas...</span>`;
+    } else {
+        contenedorPreview.innerHTML = texto;
+    }
+}
+
+// ==========================================
+// HERRAMIENTAS DE IMÁGENES & VISTA PREVIA
+// ==========================================
+
+// Escuchar cambios en el textarea y conectar la vista previa al cargar la página
+document.addEventListener("DOMContentLoaded", () => {
+    const textareaContenido = document.getElementById("contenido");
+    if (textareaContenido) {
+        textareaContenido.addEventListener("input", actualizarVistaPreviaEditor);
+    }
+});
+
+function actualizarVistaPreviaEditor() {
+    const textarea = document.getElementById("contenido");
+    const contenedorPreview = document.getElementById("vista-previa-editor");
+    if (!textarea || !contenedorPreview) return;
+
+    const texto = textarea.value;
+
+    if (texto.trim() === "") {
+        contenedorPreview.innerHTML = `<span style="color: #94a3b8; font-style: italic;">La vista previa de tu texto e imágenes aparecerá aquí conforme escribas...</span>`;
+    } else {
+        contenedorPreview.innerHTML = texto;
+    }
+}
+
+function insertarEnCursor(textareaId, textoAInsertar) {
+    const textarea = document.getElementById(textareaId);
+    if (!textarea) return;
+
+    const startPos = textarea.selectionStart || 0;
+    const endPos = textarea.selectionEnd || 0;
+
+    // Insertar el fragmento en la posición del cursor
+    textarea.value = textarea.value.substring(0, startPos) + textoAInsertar + textarea.value.substring(endPos);
+    
+    // Reposicionar el cursor al final del texto insertado
+    textarea.selectionStart = startPos + textoAInsertar.length;
+    textarea.selectionEnd = startPos + textoAInsertar.length;
+    textarea.focus();
+
+    // FORZAR la actualización de la vista previa inmediatamente
+    actualizarVistaPreviaEditor();
+}
+
+function insertarImagenURL() {
+    const url = prompt("Ingresa la URL pública de la imagen:");
+    if (url && url.trim() !== "") {
+        const imgTag = `\n<img src="${url.trim()}" class="wiki-img" style="max-width:100%; border-radius:8px; margin:15px 0; display:block;" alt="Imagen URL">\n`;
+        insertarEnCursor("contenido", imgTag);
+    }
+}
+
+function insertarImagenBase64(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+            // Reescalar con Canvas para mantener un tamaño máximo de 1080px
+            const canvas = document.createElement("canvas");
+            const maxAncho = 1080;
+            let escala = 1;
+
+            if (img.width > maxAncho) {
+                escala = maxAncho / img.width;
+            }
+
+            canvas.width = img.width * escala;
+            canvas.height = img.height * escala;
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // Convertir a JPEG Base64 comprimido al 80%
+            const base64Comprimido = canvas.toDataURL("image/jpeg", 0.8);
+            const imgTag = `\n<img src="${base64Comprimido}" class="wiki-img" style="max-width:100%; border-radius:8px; margin:15px 0; display:block;" alt="Imagen Base64">\n`;
+
+            insertarEnCursor("contenido", imgTag);
+            event.target.value = ""; // Limpiar selector de archivo
+        };
+    };
+    reader.readAsDataURL(file);
+}
+
+// Limpiar la vista previa al cancelar la edición o al limpiar el formulario
+function cancelarEdicion() {
+    editandoId = null;
+    const editIdInput = document.getElementById("edit-id");
+    if (editIdInput) editIdInput.value = "";
+    
+    document.getElementById("form-publicacion").reset();
+    document.getElementById("form-titulo-header").innerText = "Publicar Definición o Artículo";
+    document.getElementById("btn-guardar-pub").innerText = "Guardar y Publicar";
+    document.getElementById("btn-cancelar-edicion").style.display = "none";
+    
+    actualizarVistaPreviaEditor();
 }

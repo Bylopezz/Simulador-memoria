@@ -1,5 +1,9 @@
 import os
 import sqlite3
+import threading
+import time
+import random
+import ctypes
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
@@ -93,21 +97,28 @@ def serve_frontend_files(filename):
     return send_from_directory(frontend_folder, filename)
 
 # ==========================================
-# RUTAS DE LA API (PUBLICACIONES CON SQLITE)
+# RUTAS DE LA API (CRUD PUBLICACIONES WIKI)
 # ==========================================
 @app.route('/api/publicaciones', methods=['GET'])
 def obtener_publicaciones():
     conn = get_db_connection()
     publicaciones = conn.execute('SELECT * FROM publicaciones ORDER BY id DESC').fetchall()
     conn.close()
-    
-    # Convertir filas de la BD a lista de diccionarios
     resultado = [dict(p) for p in publicaciones]
     return jsonify(resultado), 200
 
+@app.route('/api/publicaciones/<int:pub_id>', methods=['GET'])
+def obtener_publicacion_por_id(pub_id):
+    conn = get_db_connection()
+    pub = conn.execute('SELECT * FROM publicaciones WHERE id = ?', (pub_id,)).fetchone()
+    conn.close()
+    if pub is None:
+        return jsonify({"error": "Publicación no encontrada"}), 404
+    return jsonify(dict(pub)), 200
+
 @app.route('/api/publicaciones', methods=['POST'])
 def crear_publicacion():
-    data = request.get_json()
+    data = request.get_json() or {}
     if not data or not data.get('titulo') or not data.get('contenido'):
         return jsonify({"error": "El título y contenido son obligatorios."}), 400
 
@@ -139,6 +150,49 @@ def crear_publicacion():
     }
     return jsonify(nueva_pub), 201
 
+@app.route('/api/publicaciones/<int:pub_id>', methods=['PUT'])
+def actualizar_publicacion(pub_id):
+    data = request.get_json() or {}
+    titulo = data.get('titulo')
+    tipo = data.get('tipo', 'Definición')
+    categoria = data.get('categoria', 'General')
+    autor = data.get('autor', 'Anónimo')
+    fecha = data.get('fecha', '2026-10-08')
+    contenido = data.get('contenido')
+
+    if not titulo or not contenido:
+        return jsonify({"error": "El título y el contenido son obligatorios."}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE publicaciones 
+        SET titulo = ?, tipo = ?, categoria = ?, autor = ?, fecha = ?, contenido = ?
+        WHERE id = ?
+    ''', (titulo, tipo, categoria, autor, fecha, contenido, pub_id))
+    conn.commit()
+    afectados = cursor.rowcount
+    conn.close()
+
+    if afectados == 0:
+        return jsonify({"error": "Publicación no encontrada"}), 404
+
+    return jsonify({"mensaje": "Publicación actualizada correctamente", "id": pub_id}), 200
+
+@app.route('/api/publicaciones/<int:pub_id>', methods=['DELETE'])
+def eliminar_publicacion(pub_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM publicaciones WHERE id = ?', (pub_id,))
+    conn.commit()
+    afectados = cursor.rowcount
+    conn.close()
+
+    if afectados == 0:
+        return jsonify({"error": "Publicación no encontrada"}), 404
+
+    return jsonify({"mensaje": "Publicación eliminada correctamente"}), 200
+
 # ==========================================
 # RUTAS DEL SIMULADOR RAM
 # ==========================================
@@ -165,9 +219,10 @@ def obtener_estado_simulador():
 
 @app.route('/api/simulador/crear', methods=['POST'])
 def crear_proceso():
-    data = request.get_json()
+    data = request.get_json() or {}
     nombre = data.get('nombre')
     tamano = int(data.get('tamano', 128))
+    ttl = int(data.get('ttl', 20))
 
     if not nombre or tamano <= 0:
         return jsonify({"error": "Nombre y tamaño válidos son requeridos."}), 400
@@ -175,7 +230,9 @@ def crear_proceso():
     nuevo_proceso = {
         "id": estado_simulador["siguiente_id"],
         "nombre": nombre,
-        "tamano_mb": tamano
+        "tamano_mb": tamano,
+        "ttl": ttl,
+        "ttl_inicial": ttl
     }
     estado_simulador["siguiente_id"] += 1
 
@@ -184,6 +241,55 @@ def crear_proceso():
         actualizar_metricas_ram()
     else:
         estado_simulador["cola_espera"].append(nuevo_proceso)
+
+    return jsonify(estado_simulador), 200
+
+@app.route('/api/simulador/lote-aleatorio', methods=['POST'])
+def crear_lote_aleatorio_ram():
+    """Genera 1 de 3 configuraciones aleatorias de procesos con TTL > 15s para saturar y probar el planificador"""
+    escenarios = [
+        # Escenario 1: Carga Servidor Web y Base de Datos
+        [
+            {"nombre": "BaseDatos_PostgreSQL", "tamano_mb": 480, "ttl": random.randint(20, 30)},
+            {"nombre": "Servidor_Nginx", "tamano_mb": 320, "ttl": random.randint(16, 22)},
+            {"nombre": "Worker_Celery", "tamano_mb": 350, "ttl": random.randint(25, 35)},
+            {"nombre": "Cache_Redis", "tamano_mb": 220, "ttl": random.randint(18, 25)}
+        ],
+        # Escenario 2: Modelo IA + Tareas en Segundo Plano
+        [
+            {"nombre": "Modelo_IA_PyTorch", "tamano_mb": 750, "ttl": random.randint(22, 35)},
+            {"nombre": "Servicio_Autenticacion", "tamano_mb": 180, "ttl": random.randint(16, 20)},
+            {"nombre": "Respaldo_Sistema", "tamano_mb": 380, "ttl": random.randint(20, 28)},
+            {"nombre": "Monitor_Grafana", "tamano_mb": 150, "ttl": random.randint(18, 24)}
+        ],
+        # Escenario 3: Ráfaga de Microservicios
+        [
+            {"nombre": "Microservicio_Pagos", "tamano_mb": 280, "ttl": random.randint(16, 22)},
+            {"nombre": "Microservicio_Usuarios", "tamano_mb": 310, "ttl": random.randint(18, 26)},
+            {"nombre": "Contenedor_Docker", "tamano_mb": 360, "ttl": random.randint(20, 30)},
+            {"nombre": "Proxy_Inverso", "tamano_mb": 290, "ttl": random.randint(17, 24)}
+        ]
+    ]
+
+    escenario_elegido = random.choice(escenarios)
+
+    for proc in escenario_elegido:
+        p_id = estado_simulador["siguiente_id"]
+        estado_simulador["siguiente_id"] += 1
+        
+        nuevo_p = {
+            "id": p_id,
+            "nombre": proc["nombre"],
+            "tamano_mb": proc["tamano_mb"],
+            "ttl": proc["ttl"],
+            "ttl_inicial": proc["ttl"]
+        }
+
+        if proc["tamano_mb"] <= estado_simulador["ram_disponible_mb"]:
+            estado_simulador["procesos_ejecucion"].append(nuevo_p)
+            actualizar_metricas_ram()
+        else:
+            estado_simulador["cola_espera"].append(nuevo_p)
 
     return jsonify(estado_simulador), 200
 
@@ -216,12 +322,6 @@ def reiniciar_simulador():
 # ==========================================
 # SIMULADOR DE CONCURRENCIA (SISTEMA DE VUELO)
 # ==========================================
-import threading
-import time
-import random
-import os
-import ctypes
-
 def get_kernel_tid():
     try:
         libc = ctypes.CDLL('libc.so.6')
@@ -350,14 +450,21 @@ def reiniciar_vuelo():
 def ejecutar_simulacion_concurrencia():
     data = request.get_json() or {}
     modo_protegido = data.get('modo_protegido', False)
-    num_agentes = int(data.get('num_agentes', 20))
+    
+    # Permitir variación aleatoria dinámica de agentes (entre 15 y 25 agentes) si no se especifica un número estático
+    num_agentes = int(data.get('num_agentes', random.randint(15, 25)))
     
     # Reiniciar asientos para la prueba
     sistema_vuelo.reiniciar()
     hilos = []
 
-    # Todos los agentes compiten por asientos de alta demanda (Filas 1 y 2)
-    asientos_objetivo = ["1A", "1B", "1C", "1D", "2A"]
+    # Variación aleatoria de asientos en disputa en cada ejecución
+    grupos_asientos_disputa = [
+        ["1A", "1B", "1C", "1D", "2A"],
+        ["2A", "2B", "2C", "3A", "3B"],
+        ["1A", "2A", "3A", "1C", "2C"]
+    ]
+    asientos_objetivo = random.choice(grupos_asientos_disputa)
 
     def tarea_agente(id_agente):
         tid = get_kernel_tid()
