@@ -43,6 +43,11 @@ document.addEventListener("DOMContentLoaded", () => {
     cargarPublicaciones();
     actualizarVistaSimulador();
     cargarEstadoVuelo();
+
+    const textareaContenido = document.getElementById("contenido");
+    if (textareaContenido) {
+        textareaContenido.addEventListener("input", actualizarVistaPreviaEditor);
+    }
 });
 
 // ==========================================
@@ -76,8 +81,22 @@ function mostrarSeccion(idSeccion) {
 }
 
 // ==========================================
-// HERRAMIENTAS DE IMÁGENES (URL & BASE64 COMPRIMIDO)
+// HERRAMIENTAS DE IMÁGENES & VISTA PREVIA
 // ==========================================
+function actualizarVistaPreviaEditor() {
+    const textarea = document.getElementById("contenido");
+    const contenedorPreview = document.getElementById("vista-previa-editor");
+    if (!textarea || !contenedorPreview) return;
+
+    const texto = textarea.value;
+
+    if (texto.trim() === "") {
+        contenedorPreview.innerHTML = `<span style="color: #94a3b8; font-style: italic;">La vista previa de tu texto e imágenes aparecerá aquí conforme escribas...</span>`;
+    } else {
+        contenedorPreview.innerHTML = texto;
+    }
+}
+
 function insertarEnCursor(textareaId, textoAInsertar) {
     const textarea = document.getElementById(textareaId);
     if (!textarea) return;
@@ -89,6 +108,8 @@ function insertarEnCursor(textareaId, textoAInsertar) {
     textarea.selectionStart = startPos + textoAInsertar.length;
     textarea.selectionEnd = startPos + textoAInsertar.length;
     textarea.focus();
+
+    actualizarVistaPreviaEditor();
 }
 
 function insertarImagenURL() {
@@ -108,7 +129,6 @@ function insertarImagenBase64(event) {
         const img = new Image();
         img.src = e.target.result;
         img.onload = function() {
-            // Reescalar con Canvas para mantener un tamaño máximo de 1080px y optimizar espacio en SQLite
             const canvas = document.createElement("canvas");
             const maxAncho = 1080;
             let escala = 1;
@@ -123,12 +143,11 @@ function insertarImagenBase64(event) {
             const ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-            // Convertir a JPEG Base64 comprimido al 80%
             const base64Comprimido = canvas.toDataURL("image/jpeg", 0.8);
             const imgTag = `\n<img src="${base64Comprimido}" class="wiki-img" style="max-width:100%; border-radius:8px; margin:15px 0; display:block;" alt="Imagen Base64">\n`;
 
             insertarEnCursor("contenido", imgTag);
-            event.target.value = ""; // Limpiar selector
+            event.target.value = "";
         };
     };
     reader.readAsDataURL(file);
@@ -162,7 +181,6 @@ function renderizarPublicaciones(lista) {
     }
 
     contenedor.innerHTML = lista.map(pub => {
-        // Limpiar etiquetas HTML/imágenes para la vista previa de la tarjeta
         const textoPlano = pub.contenido.replace(/<[^>]*>?/gm, '');
         const extracto = textoPlano.length > 120 ? textoPlano.substring(0, 120) + "..." : textoPlano;
 
@@ -175,9 +193,9 @@ function renderizarPublicaciones(lista) {
                     <p style="font-size: 0.95rem; color: #334155; line-height:1.5;">${extracto}</p>
                 </div>
                 <div style="margin-top: 1rem; display: flex; gap: 8px; border-top: 1px solid #f1f5f9; padding-top: 0.8rem;">
-                    <button class="btn btn-outline" style="padding:4px 10px; font-size:0.85rem;" onclick="verArticuloCompleto(${pub.id})">👁️ Leer</button>
-                    <button class="btn btn-outline" style="padding:4px 10px; font-size:0.85rem;" onclick="cargarParaEditar(${pub.id})">✏️ Editar</button>
-                    <button class="btn btn-danger" style="padding:4px 10px; font-size:0.85rem;" onclick="eliminarPublicacion(${pub.id})">🗑️</button>
+                    <button class="btn btn-outline" style="padding:4px 10px; font-size:0.85rem;" onclick="verArticuloCompleto(${pub.id})">Leer</button>
+                    <button class="btn btn-outline" style="padding:4px 10px; font-size:0.85rem;" onclick="cargarParaEditar(${pub.id})">Editar</button>
+                    <button class="btn btn-danger" style="padding:4px 10px; font-size:0.85rem;" onclick="eliminarPublicacion(${pub.id})">Eliminar</button>
                 </div>
             </article>
         `;
@@ -214,8 +232,6 @@ async function verArticuloCompleto(id) {
         document.getElementById("lectura-titulo").innerText = pub.titulo;
         document.getElementById("lectura-autor").innerText = pub.autor;
         document.getElementById("lectura-fecha").innerText = pub.fecha;
-
-        // Inyectar HTML permitiendo que las etiquetas de imagen e interlineado se rendericen adecuadamente
         document.getElementById("lectura-contenido").innerHTML = pub.contenido;
 
         mostrarSeccion("modulo-lectura");
@@ -248,6 +264,7 @@ async function cargarParaEditar(id) {
         document.getElementById("btn-guardar-pub").innerText = "Guardar Cambios";
         document.getElementById("btn-cancelar-edicion").style.display = "inline-block";
 
+        actualizarVistaPreviaEditor();
         mostrarSeccion("publicar");
     } catch (err) {
         console.error("Error al preparar edición:", err);
@@ -256,11 +273,15 @@ async function cargarParaEditar(id) {
 
 function cancelarEdicion() {
     editandoId = null;
-    document.getElementById("edit-id").value = "";
+    const editIdInput = document.getElementById("edit-id");
+    if (editIdInput) editIdInput.value = "";
+    
     document.getElementById("form-publicacion").reset();
     document.getElementById("form-titulo-header").innerText = "Publicar Definición o Artículo";
     document.getElementById("btn-guardar-pub").innerText = "Guardar y Publicar";
     document.getElementById("btn-cancelar-edicion").style.display = "none";
+    
+    actualizarVistaPreviaEditor();
 }
 
 async function guardarPublicacion(event) {
@@ -334,12 +355,10 @@ function tickSimuladorRAM() {
 
     let seLiberaronProcesos = false;
 
-    // Descontar 1 segundo a cada proceso en ejecución
     for (let i = simuladorRAM.procesosEjecucion.length - 1; i >= 0; i--) {
         let proc = simuladorRAM.procesosEjecucion[i];
         proc.tiempoRestante -= 1;
 
-        // Si completó su tiempo de ejecución, liberarlo
         if (proc.tiempoRestante <= 0) {
             simuladorRAM.usada -= proc.tamano;
             simuladorRAM.procesosEjecucion.splice(i, 1);
@@ -347,7 +366,6 @@ function tickSimuladorRAM() {
         }
     }
 
-    // Si se liberó espacio, promover procesos en cola de espera
     if (seLiberaronProcesos) {
         revisarColaEspera();
     }
@@ -398,7 +416,6 @@ async function ejecutarEscenarioAleatorioRAM() {
         if (res.ok) {
             const estadoBackend = await res.json();
             
-            // Sincronizar el estado del backend con el temporizador local del frontend
             simuladorRAM.procesosEjecucion = estadoBackend.procesos_ejecucion.map(p => ({
                 id: p.id,
                 nombre: p.nombre,
@@ -489,7 +506,6 @@ function actualizarVistaSimulador() {
         }
     }
 
-    // Renderizar procesos en ejecución
     const listEjec = document.getElementById("lista-ejecucion");
     if (listEjec) {
         if (simuladorRAM.procesosEjecucion.length === 0) {
@@ -505,7 +521,7 @@ function actualizarVistaSimulador() {
                                 <br><small style="color:#2563eb; font-weight:600;">${p.tamano} MB</small>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:0.8rem; padding:2px 6px; border-radius:4px;">⏱️ ${p.tiempoRestante}s</span>
+                                <span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:0.8rem; padding:2px 6px; border-radius:4px;">${p.tiempoRestante}s</span>
                                 <button class="btn btn-danger" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="terminarProceso(${p.id})">Terminar</button>
                             </div>
                         </div>
@@ -518,7 +534,6 @@ function actualizarVistaSimulador() {
         }
     }
 
-    // Renderizar cola de espera
     const listEsp = document.getElementById("lista-espera");
     if (listEsp) {
         if (simuladorRAM.colaEspera.length === 0) {
@@ -558,10 +573,10 @@ function actualizarVistaCabina(data) {
 
     if (elIntegridad) {
         if (data.asientos_con_overbooking > 0) {
-            elIntegridad.textContent = "❌ OVERBOOKING DETECTADO";
+            elIntegridad.textContent = "OVERBOOKING DETECTADO";
             elIntegridad.style.color = "#ef4444";
         } else if (data.conteo_exito > 0) {
-            elIntegridad.textContent = "✅ INTEGRIDAD GARANTIZADA";
+            elIntegridad.textContent = "INTEGRIDAD GARANTIZADA";
             elIntegridad.style.color = "#10b981";
         } else {
             elIntegridad.textContent = "Esperando acción";
@@ -618,29 +633,26 @@ function actualizarVistaCabina(data) {
 
     const terminalLogs = document.getElementById('terminal-logs');
     if (terminalLogs) {
-        terminalLogs.textContent = `[PID OS Kernel: ${data.pid}]\n` + (data.logs.length > 0 ? data.logs.join('\n') : "Esperando acciones...");
+        terminalLogs.textContent = `[PID OS Kernel: ${data.pid || 'N/A'}]\n` + (data.logs && data.logs.length > 0 ? data.logs.join('\n') : "Esperando acciones...");
         terminalLogs.scrollTop = terminalLogs.scrollHeight;
     }
 }
 
 function crearBotonAsientoHTML(asiento) {
     let clase = "seat-btn";
-    let icon = "💺";
     let subtext = "Libre";
 
     if (asiento.overbooking) {
         clase += " seat-overbooking";
-        icon = "⚠️";
         subtext = `OVERBOOK (${asiento.total_asignaciones})`;
     } else if (asiento.pasajero_confirmado) {
         clase += " seat-occupied";
-        icon = "👤";
         subtext = asiento.pasajero_confirmado;
     }
 
     return `
         <button class="${clase}" onclick="seleccionarAsientoDirecto('${asiento.id}')" title="Asiento ${asiento.id} - ${subtext}">
-            <span class="seat-id">${asiento.id} ${icon}</span>
+            <span class="seat-id">${asiento.id}</span>
             <span class="seat-passenger">${subtext}</span>
         </button>
     `;
@@ -720,122 +732,4 @@ async function ejecutarSimulacionConcurrencia() {
     } catch (err) {
         console.error("Error en prueba de concurrencia:", err);
     }
-}
-
-// Escuchar cambios en el textarea de contenido para la vista previa
-document.getElementById("contenido")?.addEventListener("input", actualizarVistaPreviaEditor);
-
-function actualizarVistaPreviaEditor() {
-    const texto = document.getElementById("contenido").value;
-    const contenedorPreview = document.getElementById("vista-previa-editor");
-    
-    if (!contenedorPreview) return;
-
-    if (texto.trim() === "") {
-        contenedorPreview.innerHTML = `<span style="color: #94a3b8; font-style: italic;">La vista previa de tu texto e imágenes aparecerá aquí conforme escribas...</span>`;
-    } else {
-        contenedorPreview.innerHTML = texto;
-    }
-}
-
-// ==========================================
-// HERRAMIENTAS DE IMÁGENES & VISTA PREVIA
-// ==========================================
-
-// Escuchar cambios en el textarea y conectar la vista previa al cargar la página
-document.addEventListener("DOMContentLoaded", () => {
-    const textareaContenido = document.getElementById("contenido");
-    if (textareaContenido) {
-        textareaContenido.addEventListener("input", actualizarVistaPreviaEditor);
-    }
-});
-
-function actualizarVistaPreviaEditor() {
-    const textarea = document.getElementById("contenido");
-    const contenedorPreview = document.getElementById("vista-previa-editor");
-    if (!textarea || !contenedorPreview) return;
-
-    const texto = textarea.value;
-
-    if (texto.trim() === "") {
-        contenedorPreview.innerHTML = `<span style="color: #94a3b8; font-style: italic;">La vista previa de tu texto e imágenes aparecerá aquí conforme escribas...</span>`;
-    } else {
-        contenedorPreview.innerHTML = texto;
-    }
-}
-
-function insertarEnCursor(textareaId, textoAInsertar) {
-    const textarea = document.getElementById(textareaId);
-    if (!textarea) return;
-
-    const startPos = textarea.selectionStart || 0;
-    const endPos = textarea.selectionEnd || 0;
-
-    // Insertar el fragmento en la posición del cursor
-    textarea.value = textarea.value.substring(0, startPos) + textoAInsertar + textarea.value.substring(endPos);
-    
-    // Reposicionar el cursor al final del texto insertado
-    textarea.selectionStart = startPos + textoAInsertar.length;
-    textarea.selectionEnd = startPos + textoAInsertar.length;
-    textarea.focus();
-
-    // FORZAR la actualización de la vista previa inmediatamente
-    actualizarVistaPreviaEditor();
-}
-
-function insertarImagenURL() {
-    const url = prompt("Ingresa la URL pública de la imagen:");
-    if (url && url.trim() !== "") {
-        const imgTag = `\n<img src="${url.trim()}" class="wiki-img" style="max-width:100%; border-radius:8px; margin:15px 0; display:block;" alt="Imagen URL">\n`;
-        insertarEnCursor("contenido", imgTag);
-    }
-}
-
-function insertarImagenBase64(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.src = e.target.result;
-        img.onload = function() {
-            // Reescalar con Canvas para mantener un tamaño máximo de 1080px
-            const canvas = document.createElement("canvas");
-            const maxAncho = 1080;
-            let escala = 1;
-
-            if (img.width > maxAncho) {
-                escala = maxAncho / img.width;
-            }
-
-            canvas.width = img.width * escala;
-            canvas.height = img.height * escala;
-
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-            // Convertir a JPEG Base64 comprimido al 80%
-            const base64Comprimido = canvas.toDataURL("image/jpeg", 0.8);
-            const imgTag = `\n<img src="${base64Comprimido}" class="wiki-img" style="max-width:100%; border-radius:8px; margin:15px 0; display:block;" alt="Imagen Base64">\n`;
-
-            insertarEnCursor("contenido", imgTag);
-            event.target.value = ""; // Limpiar selector de archivo
-        };
-    };
-    reader.readAsDataURL(file);
-}
-
-// Limpiar la vista previa al cancelar la edición o al limpiar el formulario
-function cancelarEdicion() {
-    editandoId = null;
-    const editIdInput = document.getElementById("edit-id");
-    if (editIdInput) editIdInput.value = "";
-    
-    document.getElementById("form-publicacion").reset();
-    document.getElementById("form-titulo-header").innerText = "Publicar Definición o Artículo";
-    document.getElementById("btn-guardar-pub").innerText = "Guardar y Publicar";
-    document.getElementById("btn-cancelar-edicion").style.display = "none";
-    
-    actualizarVistaPreviaEditor();
 }

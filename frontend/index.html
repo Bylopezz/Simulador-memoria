@@ -15,7 +15,7 @@
     <header class="navbar">
         <div class="nav-container">
             <div class="brand">
-                <span class="logo-icon">💻</span>
+                <span class="logo-icon"></span>
                 <h2>Wiki OS</h2>
             </div>
             <nav>
@@ -44,13 +44,13 @@
 
             <div class="grid-2">
                 <div class="card">
-                    <h3>💡 Últimas Publicaciones</h3>
+                    <h3>Últimas Publicaciones</h3>
                     <div id="lista-recientes" style="margin-top: 1rem;">
                         <p style="color: var(--text-muted);">Cargando publicaciones...</p>
                     </div>
                 </div>
                 <div class="card">
-                    <h3>🧠 Estado Rápido del Simulador</h3>
+                    <h3>Estado Rápido del Simulador</h3>
                     <p style="margin: 0.75rem 0; color: var(--text-muted);">Monitorea y asigna bloques de memoria simulando los algoritmos de gestión de RAM.</p>
                     <button class="btn btn-outline" onclick="mostrarSeccion('simulador')">Ir al Simulador</button>
                 </div>
@@ -139,9 +139,9 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 8px;">
                             <label for="contenido" style="margin-bottom: 0;">Contenido</label>
                             <div class="toolbar-imagenes" style="display: flex; gap: 0.5rem;">
-                                <button type="button" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.85rem;" onclick="insertarImagenURL()">🌐 Insertar Imagen URL</button>
+                                <button type="button" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.85rem;" onclick="insertarImagenURL()">Insertar Imagen URL</button>
                                 <label class="btn btn-outline" style="padding: 4px 10px; font-size: 0.85rem; cursor: pointer; margin-bottom: 0;">
-                                    📁 Subir Imagen PC (Base64)
+                                    Subir Imagen PC (Base64)
                                     <input type="file" id="file-imagen-base64" accept="image/*" onchange="insertarImagenBase64(event)" style="display: none;">
                                 </label>
                             </div>
@@ -189,7 +189,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 1rem;">
                         <h3>Crear Nuevo Proceso</h3>
                         <button type="button" class="btn" style="background-color: #6f42c1; color: white;" onclick="ejecutarEscenarioAleatorioRAM()">
-                            🎲 Generar Escenario Aleatorio de Estrés (TTL > 15s)
+                            Generar Escenario Aleatorio de Estrés (TTL > 15s)
                         </button>
                     </div>
                     <form id="form-proceso" onsubmit="agregarProcesoSimulador(event)" class="form-inline">
@@ -243,15 +243,15 @@
                         </label>
                     </div>
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn btn-primary" onclick="ejecutarSimulacionConcurrencia()">🚀 Estrés Hilos Aleatorios</button>
-                        <button class="btn btn-danger" onclick="reiniciarVuelo()">🔄 Reiniciar Avión</button>
+                        <button class="btn btn-primary" onclick="ejecutarSimulacionConcurrencia()">Estrés Hilos Aleatorios</button>
+                        <button class="btn btn-danger" onclick="reiniciarVuelo()">Reiniciar Avión</button>
                     </div>
                 </div>
 
                 <!-- CABINA DEL AVIÓN INTERACTIVA -->
                 <div class="airplane-container">
                     <div class="airplane-cockpit">
-                        ✈️ FRENTE DE LA CABINA / COCKPIT
+                        FRENTE DE LA CABINA / COCKPIT
                     </div>
 
                     <!-- Leyenda de colores -->
@@ -269,7 +269,7 @@
 
                 <!-- Formulario de Reserva Manual de Usuario -->
                 <div class="manual-booking-box">
-                    <h3>💺 Selección Manual de Asiento</h3>
+                    <h3>Selección Manual de Asiento</h3>
                     <div class="form-inline" style="margin-top: 10px;">
                         <select id="select-asiento-manual" class="form-control">
                             <option value="">Cargando asientos disponibles...</option>
