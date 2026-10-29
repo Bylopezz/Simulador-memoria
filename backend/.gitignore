@@ -11,3 +11,8 @@ __pycache__/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Archivos de BD Local (Para que se fuerce a utilizar TURSO)
+wiki.db
+wiki.db-journal
+*.db
