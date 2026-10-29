@@ -3,276 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki & OS Simulator 2026</title>
-    <style>
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border-color: #e2e8f0;
-            --danger: #ef4444;
-            --success: #22c55e;
-            --warning: #f59e0b;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        /* NAVEGACIÓN PRINCIPAL */
-        header {
-            background-color: #1e293b;
-            color: white;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        header h1 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        nav {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        nav button {
-            background: transparent;
-            border: 1px solid #334155;
-            color: #cbd5e1;
-            padding: 8px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        nav button:hover, nav button.active {
-            background-color: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        /* CONTENEDOR PRINCIPAL */
-        main {
-            flex: 1;
-            max-width: 1200px;
-            width: 100%;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-
-        .modulo {
-            animation: fadeIn 0.3s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* TARJETAS Y COMPONENTES */
-        .card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: background 0.2s;
-        }
-
-        .btn-primary { background-color: var(--primary); color: white; }
-        .btn-primary:hover { background-color: var(--primary-dark); }
-        .btn-secondary { background-color: #64748b; color: white; }
-        .btn-secondary:hover { background-color: #475569; }
-        .btn-outline { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
-        .btn-outline:hover { background-color: #f1f5f9; }
-        .btn-danger { background-color: var(--danger); color: white; }
-
-        /* FORMULARIOS Y TABLAS */
-        input, select, textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            margin-top: 6px;
-            margin-bottom: 14px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th, td {
-            padding: 10px 12px;
-            border: 1px solid var(--border-color);
-            text-align: left;
-            font-size: 0.9rem;
-        }
-
-        th { background-color: #f1f5f9; font-weight: 600; }
-
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        /* LAYOUTS ESPECÍFICOS */
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .grid-2 { grid-template-columns: 1fr; }
-            header { flex-direction: column; gap: 15px; }
-        }
-    </style>
+    <title>Wiki & OS Simulator</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <!-- ENCABEZADO Y NAVEGACIÓN -->
-    <header>
-        <h1>💻 Wiki & OS Simulator</h1>
-        <nav>
-            <button class="nav-btn active" onclick="mostrarModulo('inicio')">🏠 Inicio</button>
-            <button class="nav-btn" onclick="mostrarModulo('glosario')">📚 Glosario</button>
-            <button class="nav-btn" onclick="mostrarModulo('editor')">✏️ Publicar</button>
-            <button class="nav-btn" onclick="mostrarModulo('ram')">🧠 Simulador RAM</button>
-            <button class="nav-btn" onclick="mostrarModulo('concurrencia')">⚡ Concurrencia</button>
-            <button class="nav-btn" onclick="mostrarModulo('banquero')">🏦 Algoritmo Banquero</button>
-        </nav>
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <h2>Wiki & OS Simulator</h2>
+            </div>
+            <nav>
+                <button class="nav-btn active" onclick="mostrarModulo('inicio')">Inicio</button>
+                <button class="nav-btn" onclick="mostrarModulo('glosario')">Glosario</button>
+                <button class="nav-btn" onclick="mostrarModulo('editor')">Publicar</button>
+                <button class="nav-btn" onclick="mostrarModulo('ram')">Simulador RAM</button>
+                <button class="nav-btn" onclick="mostrarModulo('concurrencia')">Concurrencia</button>
+            </nav>
+        </div>
     </header>
 
-    <main>
+    <main class="container">
 
-        <!-- 1. MÓDULO INICIO -->
-        <section id="modulo-inicio" class="modulo">
-            <h2>🏠 Inicio - Resumen General</h2>
-            <p style="color: var(--text-muted); margin-bottom: 20px;">Estado general de las últimas publicaciones e historial de auditoría del sistema.</p>
+        <!-- 1. MODULO INICIO -->
+        <section id="modulo-inicio" class="modulo active">
+            <div class="hero-card">
+                <h1>Plataforma de Documentacion y Simulación</h1>
+                <p>Gestion de conocimiento en Sistemas Operativos y entorno de simulación interactivo en tiempo real.</p>
+            </div>
 
             <div class="grid-2">
-                <!-- Tarjeta 1: Últimas 3 publicaciones -->
                 <div class="card">
-                    <h3>📌 Últimas 3 Publicaciones</h3>
-                    <div id="contenedor-ultimas-publicaciones" style="margin-top: 10px;">
-                        <p style="color: var(--text-muted);">Cargando publicaciones recientes...</p>
+                    <h3>Ultimas Publicaciones</h3>
+                    <div id="contenedor-ultimas-publicaciones" style="margin-top: 15px;">
+                        <p class="text-muted">Cargando publicaciones recientes...</p>
                     </div>
                 </div>
 
-                <!-- Tarjeta 2: Últimos 3 cambios de auditoría -->
                 <div class="card">
-                    <h3>📜 Últimos 3 Cambios Registrados</h3>
-                    <div id="contenedor-ultimos-cambios" style="margin-top: 10px;">
-                        <p style="color: var(--text-muted);">Cargando actividad reciente...</p>
+                    <h3>Ultimos Cambios Registrados</h3>
+                    <div id="contenedor-ultimos-cambios" style="margin-top: 15px;">
+                        <p class="text-muted">Cargando actividad reciente...</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- 2. MÓDULO GLOSARIO -->
-        <section id="modulo-glosario" class="modulo" style="display: none;">
-            <h2>📚 Glosario de Términos de Sistemas Operativos</h2>
-            <p style="color: var(--text-muted); margin-bottom: 15px;">Explora la documentación cargada en la comunidad.</p>
+        <!-- 2. MODULO GLOSARIO -->
+        <section id="modulo-glosario" class="modulo">
+            <h2>Glosario de Terminos</h2>
+            <p class="subtitle">Explora la documentación cargada en el sistema.</p>
 
-            <div id="lista-articulos-glosario" class="grid-2" style="margin-bottom: 30px;">
-                <!-- Artículos renderizados dinámicamente -->
+            <div id="lista-articulos-glosario" class="grid-cards">
+                <!-- Articulos cargados dinamicamente -->
             </div>
 
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid var(--border-color);">
+            <hr class="divider">
 
-            <h3>🏛️ Historial General de Auditoría del Sistema</h3>
-            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 10px;">Bitácora global respaldada automáticamente mediante Triggers SQL (Turso).</p>
+            <h3>Historial General de Auditoria</h3>
+            <p class="subtitle">Bitacora global respaldada mediante Triggers SQL.</p>
             
             <div class="card" style="padding: 0; overflow-x: auto;">
-                <table>
+                <table style="width:100%; border-collapse:collapse;">
                     <thead>
                         <tr>
-                            <th>Acción</th>
-                            <th>Objeto / Título</th>
+                            <th>Accion</th>
+                            <th>Objeto / Titulo</th>
                             <th>Usuario / Autor</th>
                             <th>Fecha y Hora</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-historial-general">
-                        <tr><td colspan="4">Cargando bitácora general...</td></tr>
+                        <tr><td colspan="4" style="text-align:center; padding:15px;">Cargando bitacora general...</td></tr>
                     </tbody>
                 </table>
             </div>
         </section>
 
-        <!-- 3. MÓDULO DETALLE DE ARTÍCULO -->
-        <section id="modulo-articulo-detalle" class="modulo" style="display: none;">
-            <button onclick="mostrarModulo('glosario')" class="btn btn-secondary" style="margin-bottom: 15px;">⬅ Volver al Glosario</button>
+        <!-- 3. MODULO DETALLE DE ARTICULO -->
+        <section id="modulo-articulo-detalle" class="modulo">
+            <button onclick="mostrarModulo('glosario')" class="btn btn-secondary" style="margin-bottom: 15px;">Volver al Glosario</button>
             
             <article id="contenido-articulo-activo" class="card"></article>
 
             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button id="btn-editar-actual" class="btn btn-primary" onclick="abrirEditorArticuloActual()">✏️ Editar Publicación</button>
-                <button id="btn-ver-historial-articulo" class="btn btn-outline" onclick="toggleHistorialArticulo()">📜 Ver Historial de Cambios</button>
+                <button id="btn-editar-actual" class="btn btn-primary" onclick="abrirEditorArticuloActual()">Editar Publicacion</button>
+                <button id="btn-ver-historial-articulo" class="btn btn-outline" onclick="toggleHistorialArticulo()">Ver Historial de Cambios</button>
             </div>
 
-            <!-- Panel desplegable con historial del artículo activo -->
             <div id="panel-historial-articulo" class="card" style="display: none; background-color: #f8fafc;">
-                <h4 style="margin-bottom: 10px;">📜 Historial de Versiones Anteriores</h4>
-                <div id="lista-versiones-articulo"></div>
+                <h4>Historial de Versiones Anteriores</h4>
+                <div id="lista-versiones-articulo" style="margin-top: 15px;"></div>
             </div>
         </section>
 
-        <!-- 4. MÓDULO EDITOR / CREAR Y EDITAR PUBLICACIÓN -->
-        <section id="modulo-editor" class="modulo" style="display: none;">
-            <h2 id="titulo-form-editor">✏️ Crear Nueva Publicación</h2>
+        <!-- 4. MODULO EDITOR -->
+        <section id="modulo-editor" class="modulo">
+            <h2 id="titulo-form-editor">Crear Nueva Publicacion</h2>
             
-            <div class="card" style="margin-top: 15px;">
+            <div class="card">
                 <form id="form-publicacion" onsubmit="guardarPublicacion(event)">
                     <input type="hidden" id="edit-pub-id">
 
-                    <label>Título del Artículo:</label>
-                    <input type="text" id="form-titulo" required placeholder="Ej. Gestión de Memoria Virtual">
+                    <div class="form-group">
+                        <label>Titulo del Articulo:</label>
+                        <input type="text" id="form-titulo" required placeholder="Ej. Gestion de Memoria Virtual">
+                    </div>
 
-                    <div class="grid-2">
-                        <div>
+                    <div class="form-row">
+                        <div class="form-group">
                             <label>Tipo:</label>
                             <select id="form-tipo">
                                 <option value="Concepto">Concepto</option>
@@ -280,61 +119,76 @@
                                 <option value="Comando">Comando</option>
                             </select>
                         </div>
-                        <div>
-                            <label>Categoría:</label>
-                            <input type="text" id="form-categoria" required placeholder="Ej. Memoria, Concurrencia, E/S">
+                        <div class="form-group">
+                            <label>Categoria:</label>
+                            <input type="text" id="form-categoria" required placeholder="Ej. Memoria, Concurrencia">
                         </div>
                     </div>
 
-                    <label>Autor:</label>
-                    <input type="text" id="form-autor" required placeholder="Tu nombre o usuario">
+                    <div class="form-group">
+                        <label>Autor:</label>
+                        <input type="text" id="form-autor" required placeholder="Nombre o usuario">
+                    </div>
 
-                    <label>Contenido (Soporta HTML e Imágenes Base64):</label>
-                    <div style="margin-bottom: 10px;">
+                    <div class="form-group">
+                        <label>Adjuntar Imagen (Opcional - Procesamiento Base64):</label>
                         <input type="file" id="form-imagen-file" accept="image/*" onchange="insertarImagenBase64(event)">
                     </div>
-                    <textarea id="form-contenido" rows="8" required oninput="actualizarVistaPreviaEditor()"></textarea>
 
-                    <button type="submit" class="btn btn-primary">💾 Guardar Publicación</button>
+                    <div class="form-group">
+                        <label>Contenido del Articulo:</label>
+                        <textarea id="form-contenido" rows="8" required oninput="actualizarVistaPreviaEditor()"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Guardar Publicacion</button>
                 </form>
             </div>
 
-            <h3>👁️ Vista Previa en Vivo</h3>
+            <h3>Vista Previa en Tiempo Real</h3>
             <div id="vista-previa-editor" class="card" style="background: white; min-height: 100px;"></div>
         </section>
 
-        <!-- 5. MÓDULO SIMULADOR RAM -->
-        <section id="modulo-ram" class="modulo" style="display: none;">
-            <h2>🧠 Simulador de Memoria RAM (1024 MB - Aislado por Sesión)</h2>
-            <p style="color: var(--text-muted); margin-bottom: 15px;">Espacio de simulación privado. Las acciones de asignación y liberación no afectan a otros usuarios.</p>
+        <!-- 5. MODULO SIMULADOR RAM -->
+        <section id="modulo-ram" class="modulo">
+            <h2>Simulador de Memoria RAM (1024 MB)</h2>
+            <p class="subtitle">Estado de asignacion global en tiempo real.</p>
 
             <div class="grid-2">
                 <div class="card">
-                    <h3>➕ Inyectar Proceso</h3>
+                    <h3>Inyectar Proceso</h3>
                     <form onsubmit="agregarProcesoRAM(event)">
-                        <label>Nombre del Proceso:</label>
-                        <input type="text" id="ram-nombre" placeholder="Ej. Proceso_Web" required>
+                        <div class="form-group">
+                            <label>Nombre del Proceso:</label>
+                            <input type="text" id="ram-nombre" placeholder="Ej. Proceso_Web" required>
+                        </div>
 
-                        <label>Tamaño (MB):</label>
-                        <input type="number" id="ram-tamano" value="128" min="16" max="1024" required>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Tamaño (MB):</label>
+                                <input type="number" id="ram-tamano" value="128" min="16" max="1024" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Duracion (Segundos):</label>
+                                <input type="number" id="ram-duracion" value="15" min="5" max="60" required>
+                            </div>
+                        </div>
 
-                        <label>Duración (Segundos):</label>
-                        <input type="number" id="ram-duracion" value="15" min="5" max="60" required>
-
-                        <button type="submit" class="btn btn-primary">Cargar a RAM</button>
-                        <button type="button" class="btn btn-outline" onclick="generarLoteAleatorioRAM()">🎲 Generar Lote Aleatorio</button>
-                        <button type="button" class="btn btn-danger" onclick="resetearRAM()">🔄 Reiniciar RAM</button>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+                            <button type="submit" class="btn btn-primary">Cargar a RAM</button>
+                            <button type="button" class="btn btn-outline" onclick="generarLoteAleatorioRAM()">Generar Lote Aleatorio</button>
+                            <button type="button" class="btn btn-danger" onclick="resetearRAM()">Reiniciar RAM</button>
+                        </div>
                     </form>
                 </div>
 
                 <div class="card">
-                    <h3>📊 Estado de la Memoria</h3>
+                    <h3>Estado de la Memoria</h3>
                     <p><strong>Uso de RAM:</strong> <span id="ram-texto-uso">0 / 1024 MB</span></p>
-                    <div style="background: #e2e8f0; border-radius: 6px; height: 20px; overflow: hidden; margin: 10px 0;">
-                        <div id="ram-barra-progreso" style="background: var(--primary); width: 0%; height: 100%; transition: width 0.3s;"></div>
+                    <div class="ram-progress-container">
+                        <div id="ram-barra-progreso" class="ram-progress-bar" style="width: 0%;"></div>
                     </div>
 
-                    <h4>Procesos en Ejecución</h4>
+                    <h4>Procesos en Ejecucion</h4>
                     <div id="ram-lista-ejecucion" style="margin-bottom: 15px;"></div>
 
                     <h4>Cola de Espera</h4>
@@ -343,53 +197,38 @@
             </div>
         </section>
 
-        <!-- 6. MÓDULO SIMULADOR DE CONCURRENCIA -->
-        <section id="modulo-concurrencia" class="modulo" style="display: none;">
-            <h2>⚡ Simulador de Concurrencia Global (Asientos de Vuelo)</h2>
-            <p style="color: var(--text-muted); margin-bottom: 15px;">Demostración multiusuario en tiempo real. Sincronización automática vía Polling (1.5s) y Mutex Lock con auto-release de 30s TTL.</p>
+        <!-- 6. MODULO SIMULADOR DE CONCURRENCIA -->
+        <section id="modulo-concurrencia" class="modulo">
+            <h2>Simulador de Concurrencia (Asientos de Vuelo)</h2>
+            <p class="subtitle">Sincronización multiusuario vía Polling (1.5s) y Mutex Lock con Auto-Release (30s TTL).</p>
 
-            <div class="card" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <button class="btn btn-primary" onclick="toggleMutexConcurrencia()">🔒 Alternar Mutex Lock</button>
-                <button class="btn btn-outline" onclick="dispararRafagaConcurrencia()">⚡ Lanzar Ráfaga (10 Hilos)</button>
-                <button class="btn btn-danger" onclick="resetearConcurrencia()">🔄 Limpiar Vuelo</button>
-                <span id="concurrencia-estado-mutex" class="badge" style="background: #e2e8f0;">MUTEX: INACTIVO</span>
+            <div class="control-panel">
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: bold;">
+                        <input type="checkbox" id="chk-mutex-activado" onchange="cambiarMutexCheck(this.checked)">
+                        Activar Mutex Lock (Exclusión Mutua)
+                    </label>
+                    <button class="btn btn-outline" onclick="dispararRafagaConcurrencia()">Lanzar Rafaga (20 Hilos)</button>
+                    <button class="btn btn-danger" onclick="resetearConcurrencia()">Limpiar Vuelo</button>
+                </div>
+                <span id="concurrencia-estado-mutex" class="seat-badge">MUTEX: INACTIVO</span>
             </div>
 
             <div class="grid-2">
                 <div class="card">
-                    <h3>🪑 Mapa de Asientos del Vuelo</h3>
+                    <h3>Mapa de Asientos del Vuelo</h3>
                     <div id="concurrencia-mapa-asientos" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px;"></div>
                 </div>
 
                 <div class="card">
-                    <h3>🖥️ Consola de Eventos del Kernel</h3>
-                    <div id="concurrencia-terminal-logs" style="background: #1e293b; color: #f8fafc; font-family: monospace; font-size: 0.85rem; padding: 12px; border-radius: 6px; height: 250px; overflow-y: auto;"></div>
+                    <h3>Consola de Eventos del Kernel</h3>
+                    <div id="concurrencia-terminal-logs" class="terminal-box"></div>
                 </div>
             </div>
         </section>
 
-        <!-- 7. MÓDULO ALGORITMO DEL BANQUERO -->
-        <section id="modulo-banquero" class="modulo" style="display: none;">
-            <h2>🏦 Simulador del Algoritmo del Banquero (Prevención de Deadlocks)</h2>
-            <p style="color: var(--text-muted); margin-bottom: 15px;">Evalúa si el sistema se encuentra en un Estado Seguro analizando matrices de asignación y necesidad de recursos.</p>
-
-            <div style="margin-bottom: 20px; display: flex; gap: 10px;">
-                <button class="btn btn-primary" onclick="cargarCasoEjemploBanquero('caso_1_seguro')">📘 Caso 1: Seguro</button>
-                <button class="btn btn-secondary" onclick="cargarCasoEjemploBanquero('caso_2_inseguro')">⚠️ Caso 2: Inseguro</button>
-            </div>
-
-            <div class="card" style="background: #f8fafc;">
-                <h3 id="banquero-titulo-caso">Selecciona un escenario académico</h3>
-                <div id="banquero-vistas-matrices" style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px;"></div>
-                <button class="btn btn-primary" style="margin-top: 20px;" onclick="ejecutarEvaluacionBanquero()">⚡ Evaluar Estado de Seguridad</button>
-            </div>
-
-            <div id="banquero-resultado" class="card" style="margin-top: 20px; display: none;"></div>
-        </section>
-
     </main>
 
-    <!-- JS PRINCIPAL -->
     <script src="app.js"></script>
 </body>
 </html>
