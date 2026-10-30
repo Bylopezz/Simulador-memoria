@@ -221,6 +221,7 @@ async function restaurarVersionArticulo(historialId) {
 }
 
 // EDITOR
+// Y dentro de tu función limpiarFormularioEditor(), añade esta línea para limpiar la caja de texto:
 function limpiarFormularioEditor() {
     document.getElementById("edit-pub-id").value = "";
     document.getElementById("form-titulo").value = "";
@@ -229,6 +230,7 @@ function limpiarFormularioEditor() {
     document.getElementById("form-autor").value = "";
     document.getElementById("form-contenido").value = "";
     document.getElementById("form-imagen-file").value = "";
+    document.getElementById("form-imagen-url").value = ""; // <-- LÍNEA AGREGADA
     document.getElementById("titulo-form-editor").innerText = "Crear Nueva Publicación";
     actualizarVistaPreviaEditor();
 }
@@ -530,3 +532,23 @@ async function resetearConcurrencia() {
 window.addEventListener('DOMContentLoaded', () => {
     cargarInicio();
 });
+
+// Agrega esta función para procesar la URL ingresada:
+function insertarImagenURL() {
+    const urlInput = document.getElementById("form-imagen-url");
+    const url = urlInput.value.trim();
+    if (!url) {
+        alert("Por favor ingresa una URL válida de imagen.");
+        return;
+    }
+
+    const imgTag = `<br><img src="${url}" alt="Imagen desde URL" style="max-width:100%; border-radius:6px; margin:10px 0;"><br>`;
+    
+    const textarea = document.getElementById("form-contenido");
+    const startPos = textarea.selectionStart;
+    const endPos = textarea.selectionEnd;
+
+    textarea.value = textarea.value.substring(0, startPos) + imgTag + textarea.value.substring(endPos);
+    urlInput.value = "";
+    actualizarVistaPreviaEditor();
+}
