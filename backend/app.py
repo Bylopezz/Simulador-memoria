@@ -5,85 +5,119 @@ import threading
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-try:
-    import libsql_experimental as libsql
-    HAS_LIBSQL = True
-except Exception as e:
-    HAS_LIBSQL = False
-    print(f"[WARN] libsql_experimental no disponible: {e}")
-
 FRONTEND_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend'))
 
 app = Flask(__name__, static_folder=FRONTEND_FOLDER, static_url_path='')
 CORS(app)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'wiki.db')
-TURSO_DATABASE_URL = os.getenv("TURSO_DATABASE_URL")
-TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip().replace('"', '').replace("'", "")
 
 # ==========================================
-# CONEXIÓN A BASE DE DATOS (TURSO / SQLITE)
+# CONEXIÓN A BASE DE DATOS (POSTGRES / SQLITE)
 # ==========================================
 def get_db_connection():
-    if HAS_LIBSQL and TURSO_DATABASE_URL and TURSO_AUTH_TOKEN:
+    if DATABASE_URL:
         try:
-            url = TURSO_DATABASE_URL.strip()
-            token = TURSO_AUTH_TOKEN.strip()
-            return libsql.connect(url, auth_token=token)
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+            return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
         except Exception as e:
-            print(f"[ERROR TURSO] Falló conexión a Turso Cloud: {e}. Usando SQLite local.")
-    else:
-        print("[WARN DB] Variables TURSO_DATABASE_URL o TURSO_AUTH_TOKEN no detectadas.")
+            print(f"[ERROR POSTGRES] Falló conexión a Neon: {e}. Usando SQLite local.")
 
     import sqlite3
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=5.0)
     conn.row_factory = sqlite3.Row
     return conn
+
+def is_postgres(conn):
+    return not hasattr(conn, 'isolation_level')
 
 def init_db():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        pg = is_postgres(conn)
         
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS publicaciones (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                titulo TEXT NOT NULL,
-                tipo TEXT NOT NULL,
-                categoria TEXT NOT NULL,
-                autor TEXT NOT NULL,
-                fecha TEXT NOT NULL,
-                contenido TEXT NOT NULL
-            );
-        ''')
-        
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS historial_publicaciones (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                publicacion_id INTEGER,
-                tipo_accion TEXT NOT NULL,
-                titulo_anterior TEXT NOT NULL,
-                contenido_anterior TEXT NOT NULL,
-                autor_modificador TEXT NOT NULL,
-                fecha_modificacion DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-        ''')
-        
-        cursor.execute('''
-            CREATE TRIGGER IF NOT EXISTS respaldar_antes_de_editar
-            BEFORE UPDATE ON publicaciones
-            FOR EACH ROW
-            BEGIN
-                INSERT INTO historial_publicaciones (
-                    publicacion_id, tipo_accion, titulo_anterior, contenido_anterior, autor_modificador
-                )
-                VALUES (OLD.id, 'EDICION', OLD.titulo, OLD.contenido, OLD.autor);
-            END;
-        ''')
+        if pg:
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS publicaciones (
+                    id SERIAL PRIMARY KEY,
+                    titulo TEXT NOT NULL,
+                    tipo TEXT NOT NULL,
+                    categoria TEXT NOT NULL,
+                    autor TEXT NOT NULL,
+                    fecha TEXT NOT NULL,
+                    contenido TEXT NOT NULL
+                );
+            ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS historial_publicaciones (
+                    id SERIAL PRIMARY KEY,
+                    publicacion_id INTEGER,
+                    tipo_accion TEXT NOT NULL,
+                    titulo_anterior TEXT NOT NULL,
+                    contenido_anterior TEXT NOT NULL,
+                    autor_modificador TEXT NOT NULL,
+                    fecha_modificacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
+            cursor.execute('''
+                CREATE OR REPLACE FUNCTION respaldar_antes_de_editar_fn()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    INSERT INTO historial_publicaciones (
+                        publicacion_id, tipo_accion, titulo_anterior, contenido_anterior, autor_modificador
+                    )
+                    VALUES (OLD.id, 'EDICION', OLD.titulo, OLD.contenido, OLD.autor);
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+
+                DROP TRIGGER IF EXISTS respaldar_antes_de_editar ON publicaciones;
+                CREATE TRIGGER respaldar_antes_de_editar
+                BEFORE UPDATE ON publicaciones
+                FOR EACH ROW
+                EXECUTE FUNCTION respaldar_antes_de_editar_fn();
+            ''')
+        else:
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS publicaciones (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    titulo TEXT NOT NULL,
+                    tipo TEXT NOT NULL,
+                    categoria TEXT NOT NULL,
+                    autor TEXT NOT NULL,
+                    fecha TEXT NOT NULL,
+                    contenido TEXT NOT NULL
+                );
+            ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS historial_publicaciones (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    publicacion_id INTEGER,
+                    tipo_accion TEXT NOT NULL,
+                    titulo_anterior TEXT NOT NULL,
+                    contenido_anterior TEXT NOT NULL,
+                    autor_modificador TEXT NOT NULL,
+                    fecha_modificacion DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
+            cursor.execute('''
+                CREATE TRIGGER IF NOT EXISTS respaldar_antes_de_editar
+                BEFORE UPDATE ON publicaciones
+                FOR EACH ROW
+                BEGIN
+                    INSERT INTO historial_publicaciones (
+                        publicacion_id, tipo_accion, titulo_anterior, contenido_anterior, autor_modificador
+                    )
+                    VALUES (OLD.id, 'EDICION', OLD.titulo, OLD.contenido, OLD.autor);
+                END;
+            ''')
 
         conn.commit()
         conn.close()
-        print("[DB OK] Estructura inicializada.")
+        print("[DB OK] Estructura inicializada correctamente.")
     except Exception as e:
         print(f"[ERROR DB INIT]: {e}")
 
@@ -103,19 +137,14 @@ def resumen_inicio():
         cursor = conn.cursor()
         
         cursor.execute("SELECT * FROM publicaciones ORDER BY id DESC LIMIT 3")
-        pubs = [dict(f) if isinstance(f, dict) else {
-            "id": f[0], "titulo": f[1], "tipo": f[2], "categoria": f[3], "autor": f[4], "fecha": f[5], "contenido": f[6]
-        } for f in cursor.fetchall()]
+        pubs = [dict(f) for f in cursor.fetchall()]
         
         cursor.execute("""
             SELECT id, publicacion_id, tipo_accion, titulo_anterior, autor_modificador, fecha_modificacion 
             FROM historial_publicaciones 
             ORDER BY id DESC LIMIT 3
         """)
-        cambios = [dict(c) if isinstance(c, dict) else {
-            "id": c[0], "publicacion_id": c[1], "tipo_accion": c[2], 
-            "titulo_anterior": c[3], "autor_modificador": c[4], "fecha_modificacion": c[5]
-        } for c in cursor.fetchall()]
+        cambios = [dict(c) for c in cursor.fetchall()]
         
         conn.close()
         return jsonify({"ultimas_publicaciones": pubs, "ultimos_cambios": cambios})
@@ -129,9 +158,7 @@ def listar_publicaciones():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM publicaciones ORDER BY id DESC")
-        resultado = [dict(f) if isinstance(f, dict) else {
-            "id": f[0], "titulo": f[1], "tipo": f[2], "categoria": f[3], "autor": f[4], "fecha": f[5], "contenido": f[6]
-        } for f in cursor.fetchall()]
+        resultado = [dict(f) for f in cursor.fetchall()]
         conn.close()
         return jsonify(resultado)
     except Exception as e:
@@ -145,16 +172,26 @@ def crear_publicacion():
         conn = get_db_connection()
         cursor = conn.cursor()
         fecha_actual = time.strftime('%Y-%m-%d %H:%M:%S')
+        pg = is_postgres(conn)
         
-        cursor.execute('''
-            INSERT INTO publicaciones (titulo, tipo, categoria, autor, fecha, contenido)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (data.get('titulo', ''), data.get('tipo', 'Concepto'), data.get('categoria', ''), data.get('autor', 'Anonimo'), fecha_actual, data.get('contenido', '')))
-        new_id = cursor.lastrowid
+        ph = "%s" if pg else "?"
         
-        cursor.execute('''
+        if pg:
+            cursor.execute(f'''
+                INSERT INTO publicaciones (titulo, tipo, categoria, autor, fecha, contenido)
+                VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}) RETURNING id
+            ''', (data.get('titulo', ''), data.get('tipo', 'Concepto'), data.get('categoria', ''), data.get('autor', 'Anonimo'), fecha_actual, data.get('contenido', '')))
+            new_id = cursor.fetchone()['id']
+        else:
+            cursor.execute(f'''
+                INSERT INTO publicaciones (titulo, tipo, categoria, autor, fecha, contenido)
+                VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+            ''', (data.get('titulo', ''), data.get('tipo', 'Concepto'), data.get('categoria', ''), data.get('autor', 'Anonimo'), fecha_actual, data.get('contenido', '')))
+            new_id = cursor.lastrowid
+        
+        cursor.execute(f'''
             INSERT INTO historial_publicaciones (publicacion_id, tipo_accion, titulo_anterior, contenido_anterior, autor_modificador)
-            VALUES (?, 'CREACION', ?, ?, ?)
+            VALUES ({ph}, 'CREACION', {ph}, {ph}, {ph})
         ''', (new_id, data.get('titulo', ''), data.get('contenido', ''), data.get('autor', 'Anonimo')))
         
         conn.commit()
@@ -170,8 +207,10 @@ def editar_publicacion(pub_id):
         data = request.json or {}
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE publicaciones SET titulo = ?, tipo = ?, categoria = ?, autor = ?, contenido = ? WHERE id = ?
+        ph = "%s" if is_postgres(conn) else "?"
+        
+        cursor.execute(f'''
+            UPDATE publicaciones SET titulo = {ph}, tipo = {ph}, categoria = {ph}, autor = {ph}, contenido = {ph} WHERE id = {ph}
         ''', (data.get('titulo', ''), data.get('tipo', ''), data.get('categoria', ''), data.get('autor', ''), data.get('contenido', ''), pub_id))
         conn.commit()
         conn.close()
@@ -189,12 +228,8 @@ def historial_general():
             FROM historial_publicaciones 
             ORDER BY id DESC
         """)
-        filas = cursor.fetchall()
+        resultado = [dict(h) for h in cursor.fetchall()]
         conn.close()
-        resultado = [dict(h) if isinstance(h, dict) else {
-            "id": h[0], "publicacion_id": h[1], "tipo_accion": h[2],
-            "titulo_anterior": h[3], "autor_modificador": h[4], "fecha_modificacion": h[5]
-        } for h in filas]
         return jsonify(resultado)
     except Exception as e:
         return jsonify([])
@@ -204,18 +239,15 @@ def historial_articulo(pub_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        ph = "%s" if is_postgres(conn) else "?"
+        cursor.execute(f"""
             SELECT id, publicacion_id, tipo_accion, titulo_anterior, contenido_anterior, autor_modificador, fecha_modificacion 
             FROM historial_publicaciones 
-            WHERE publicacion_id = ? 
+            WHERE publicacion_id = {ph} 
             ORDER BY id DESC
         """, (pub_id,))
-        filas = cursor.fetchall()
+        resultado = [dict(h) for h in cursor.fetchall()]
         conn.close()
-        resultado = [dict(h) if isinstance(h, dict) else {
-            "id": h[0], "publicacion_id": h[1], "tipo_accion": h[2], "titulo_anterior": h[3],
-            "contenido_anterior": h[4], "autor_modificador": h[5], "fecha_modificacion": h[6]
-        } for h in filas]
         return jsonify(resultado)
     except Exception as e:
         return jsonify([])
@@ -225,20 +257,21 @@ def restaurar_version(pub_id, historial_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT titulo_anterior, contenido_anterior FROM historial_publicaciones WHERE id = ?", (historial_id,))
+        ph = "%s" if is_postgres(conn) else "?"
+        
+        cursor.execute(f"SELECT titulo_anterior, contenido_anterior FROM historial_publicaciones WHERE id = {ph}", (historial_id,))
         version = cursor.fetchone()
         if not version:
             conn.close()
             return jsonify({"error": "No encontrado"}), 404
             
-        tit = version['titulo_anterior'] if isinstance(version, dict) else version[0]
-        cont = version['contenido_anterior'] if isinstance(version, dict) else version[1]
+        tit = version['titulo_anterior']
+        cont = version['contenido_anterior']
         
-        cursor.execute("UPDATE publicaciones SET titulo = ?, contenido = ? WHERE id = ?", (tit, cont, pub_id))
-        
-        cursor.execute('''
+        cursor.execute(f"UPDATE publicaciones SET titulo = {ph}, contenido = {ph} WHERE id = {ph}", (tit, cont, pub_id))
+        cursor.execute(f'''
             INSERT INTO historial_publicaciones (publicacion_id, tipo_accion, titulo_anterior, contenido_anterior, autor_modificador)
-            VALUES (?, 'RESTAURACION', ?, ?, 'Sistema')
+            VALUES ({ph}, 'RESTAURACION', {ph}, {ph}, 'Sistema')
         ''', (pub_id, tit, cont))
         
         conn.commit()
@@ -248,7 +281,7 @@ def restaurar_version(pub_id, historial_id):
         return jsonify({"error": str(e)}), 500
 
 # ==========================================
-# 2. SIMULADOR DE MEMORIA RAM (TIEMPO REAL)
+# 2. SIMULADOR DE MEMORIA RAM
 # ==========================================
 simulador_ram = {
     "usada": 0,
@@ -359,7 +392,7 @@ def reset_ram():
     return jsonify({"status": "reset"})
 
 # ==========================================
-# 3. SIMULADOR CONCURRENCIA GLOBAL (20 HILOS + PID/THREAD ID + AUTO-LIMPIEZA 5S)
+# 3. SIMULADOR CONCURRENCIA GLOBAL
 # ==========================================
 class VueloGlobal:
     def __init__(self):
@@ -401,9 +434,9 @@ def _ejecutar_asignacion(asiento_id, pasajero, con_mutex):
         if asiento['pasajero'] is None:
             asiento['pasajero'] = pasajero
             asiento['total_asignaciones'] = 1
-            vuelo_global.logs.append(f"{prefix} [MUTEX PROTECTED] Asiento {asiento_id} reservado exitosamente para {pasajero}.")
+            vuelo_global.logs.append(f"{prefix} [MUTEX PROTECTED] Asiento {asiento_id} reservado para {pasajero}.")
         else:
-            vuelo_global.logs.append(f"{prefix} [MUTEX PREVENTED] Asiento {asiento_id} ocupado por {asiento['pasajero']}. Reserva de {pasajero} rechazada.")
+            vuelo_global.logs.append(f"{prefix} [MUTEX PREVENTED] Asiento {asiento_id} ocupado por {asiento['pasajero']}. Reserva rechazada.")
     else:
         asiento['total_asignaciones'] += 1
         if asiento['pasajero'] is None:
@@ -411,7 +444,7 @@ def _ejecutar_asignacion(asiento_id, pasajero, con_mutex):
             vuelo_global.logs.append(f"{prefix} [SIN MUTEX] Asiento {asiento_id} reservado por {pasajero}.")
         else:
             asiento['overbooking'] = True
-            vuelo_global.logs.append(f"{prefix} [RACE CONDITION] ¡COLISIÓN en {asiento_id}! {pasajero} compite contra {asiento['pasajero']}.")
+            vuelo_global.logs.append(f"{prefix} [RACE CONDITION] ¡COLISIÓN en {asiento_id}! {pasajero} compite con {asiento['pasajero']}.")
     
     vuelo_global.ultimo_cambio = time.time()
 
@@ -475,7 +508,7 @@ def reservar_asiento():
                 vuelo_global.mutex_bloqueado = True
                 vuelo_global.mutex_timestamp = time.time()
                 with vuelo_global.lock:
-                    time.sleep(0.8)
+                    time.sleep(0.5)
                     _ejecutar_asignacion(asiento_id, pasajero, con_mutex=True)
                 vuelo_global.mutex_bloqueado = False
             else:
@@ -496,7 +529,7 @@ def rafaga_hilos():
     def lanzar_hilo(i):
         vuelo_global.hilos_activos += 1
         try:
-            time.sleep(random.uniform(0.1, 1.2))
+            time.sleep(random.uniform(0.1, 1.0))
             asiento_tarjeta = random.choice(asientos_llaves)
             pasajero_nombre = f"Hilo_{i}"
             
@@ -504,7 +537,7 @@ def rafaga_hilos():
                 vuelo_global.mutex_bloqueado = True
                 vuelo_global.mutex_timestamp = time.time()
                 with vuelo_global.lock:
-                    time.sleep(0.5)
+                    time.sleep(0.4)
                     _ejecutar_asignacion(asiento_tarjeta, pasajero_nombre, con_mutex=True)
                 vuelo_global.mutex_bloqueado = False
             else:
