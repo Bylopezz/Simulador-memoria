@@ -31,7 +31,7 @@ def get_db_connection():
     return conn
 
 def is_postgres(conn):
-    return not hasattr(conn, 'isolation_level')
+    return type(conn).__module__ != 'sqlite3'
 
 def init_db():
     try:
