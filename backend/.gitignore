@@ -11,3 +11,12 @@ __pycache__/
 .vscode/
 .DS_Store
 Thumbs.db
+
+__pycache__/
+*.pyc
+venv/
+.env
+backend/wiki.db
+backend/wiki.db-journal
+*.db
+*.db-journal
